@@ -1,11 +1,14 @@
-// controllers/authController.js — Auth logic
-// Handles register and login. Passwords are hashed in the User model pre-save hook.
+// backend/controllers/authController.js
+//
+// FIX: getMe now:
+//   1. Fetches fresh user from DB (not stale req.user)
+//   2. Calls resetCreditsIfNeeded() so credits update when page loads
+//   3. Returns creditsLastReset so frontend can show "resets in Xh Ym" countdown
 
 const jwt = require("jsonwebtoken");
 const { z } = require("zod");
 const User = require("../models/User");
 
-// ── Zod schemas for request body validation
 const registerSchema = z.object({
   name: z.string().min(2).max(50),
   email: z.string().email(),
@@ -21,7 +24,6 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-/** Generates a signed JWT access token */
 const signToken = (userId) =>
   jwt.sign({ id: userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
@@ -32,7 +34,6 @@ const signToken = (userId) =>
  */
 const register = async (req, res, next) => {
   try {
-    // 1. Validate request body
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -43,19 +44,12 @@ const register = async (req, res, next) => {
 
     const { name, email, password } = parsed.data;
 
-    // 2. Check for existing user
     const existing = await User.findOne({ email });
     if (existing) {
-      return res.status(409).json({
-        success: false,
-        message: "An account with this email already exists.",
-      });
+      return res.status(409).json({ success: false, message: "An account with this email already exists." });
     }
 
-    // 3. Create user (password hashed via pre-save hook in User model)
     const user = await User.create({ name, email, password });
-
-    // 4. Issue token
     const token = signToken(user._id);
 
     res.status(201).json({
@@ -67,6 +61,7 @@ const register = async (req, res, next) => {
         name: user.name,
         email: user.email,
         credits: user.credits,
+        creditsLastReset: user.creditsLastReset,
       },
     });
   } catch (err) {
@@ -79,7 +74,6 @@ const register = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
   try {
-    // 1. Validate request body
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -90,26 +84,14 @@ const login = async (req, res, next) => {
 
     const { email, password } = parsed.data;
 
-    // 2. Find user — password field excluded by default, so force-select it
     const user = await User.findOne({ email }).select("+password");
-    if (!user) {
-      // Intentionally vague to prevent email enumeration
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
-      });
+    if (!user || !(await user.matchPassword(password))) {
+      return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
-    // 3. Compare password
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password.",
-      });
-    }
+    // Reset daily credits on login too (good UX — shows correct count immediately)
+    await user.resetCreditsIfNeeded();
 
-    // 4. Issue token
     const token = signToken(user._id);
 
     res.status(200).json({
@@ -121,6 +103,7 @@ const login = async (req, res, next) => {
         name: user.name,
         email: user.email,
         credits: user.credits,
+        creditsLastReset: user.creditsLastReset,
       },
     });
   } catch (err) {
@@ -129,18 +112,32 @@ const login = async (req, res, next) => {
 };
 
 /**
- * GET /api/auth/me  (optional — returns current user info)
+ * GET /api/auth/me
+ * FIX: Fetches fresh user + resets credits if needed.
+ * Returns creditsLastReset for the "resets in..." countdown on frontend.
  */
-const getMe = async (req, res) => {
-  res.status(200).json({
-    success: true,
-    user: {
-      id: req.user._id,
-      name: req.user.name,
-      email: req.user.email,
-      credits: req.user.credits,
-    },
-  });
+const getMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    await user.resetCreditsIfNeeded();
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        credits: user.credits,
+        creditsLastReset: user.creditsLastReset,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 };
 
 module.exports = { register, login, getMe };

@@ -1,3 +1,8 @@
+// frontend/src/contexts/AuthContext.tsx
+//
+// FIX: Added creditsLastReset to User type so components can show
+// "Credits reset in Xh Ym" countdown. Everything else unchanged.
+
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { authApi } from "@/lib/api";
 
@@ -6,6 +11,7 @@ interface User {
   name: string;
   email: string;
   credits: number;
+  creditsLastReset?: string; // ISO string — used for "resets in..." countdown
 }
 
 interface AuthContextType {
@@ -27,8 +33,8 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [user, setUser]       = useState<User | null>(null);
+  const [token, setToken]     = useState<string | null>(localStorage.getItem("token"));
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshUser = useCallback(async () => {
