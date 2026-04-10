@@ -2,10 +2,10 @@
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Only real, free-tier working models in 2025. No preview/fake model names.
-// The list is tried in order only if the previous one fails.
+// Models tried in order only if the previous one fails.
+// gemini-2.0-flash-preview is tried first as it is the most capable free-tier model.
 const MODEL_PRIORITY = [
-  "gemini-3-flash-preview",
+  "gemini-2.0-flash-preview",
   "gemini-1.5-flash",
   "gemini-1.5-flash-8b",
   "gemini-2.0-flash-lite",
@@ -137,22 +137,31 @@ const tryGenerate = async (apiKey, modelName, prompt) => {
   }
 };
 
-// Strips JSON out of a string even if Gemini added markdown fences
+/**
+ * extractJSON
+ *
+ * Robustly pulls out a JSON object from whatever Gemini returned.
+ * Gemini sometimes prepends text like "Result Construction..." or wraps
+ * the JSON in markdown code fences. This function handles all of that.
+ *
+ * Strategy: find the FIRST { and the LAST } in the raw string and
+ * slice between them. This works regardless of any surrounding text,
+ * markdown fences, or preamble. We do this BEFORE any regex cleanup
+ * because regex strip of "^```json" only works if the fence is at
+ * position 0 of the string, which is not always the case.
+ */
 const extractJSON = (raw) => {
-  let cleaned = raw
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
 
-  // If the string does not start with { find the first { and trim from there
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start !== -1 && end !== -1 && end > start) {
-    cleaned = cleaned.slice(start, end + 1);
+  if (start === -1 || end === -1 || end <= start) {
+    // No JSON object found at all. Throw so the caller can handle it.
+    throw new Error(
+      `No JSON object found in Gemini response. Raw (first 300 chars): ${raw.slice(0, 300)}`
+    );
   }
 
-  return cleaned;
+  return raw.slice(start, end + 1);
 };
 
 /**
@@ -165,13 +174,14 @@ const extractJSON = (raw) => {
  *
  * Fallback order:
  *   For each API key (key1 then key2 then key3):
- *     For each model (gemini-1.5-flash then gemini-1.5-flash-8b then ...):
+ *     For each model (gemini-2.0-flash-preview then gemini-1.5-flash then ...):
  *       Try once.
- *       Success  --> return immediately, no further calls.
- *       quota or key_invalid --> skip remaining models, try next key.
+ *       Success + valid JSON  --> return immediately. ALL loops stop.
+ *       Success + bad JSON    --> try next model with same key.
+ *       quota or key_invalid  --> skip remaining models, try next key.
  *       model_not_found or other --> try next model with same key.
  *
- * The function exits as soon as ONE call succeeds.
+ * The function exits as soon as ONE successful + parseable call is made.
  * Under normal conditions only ONE Gemini API call is made.
  */
 const generatePortfolioHTML = async (resumeText, template) => {
@@ -188,42 +198,53 @@ const generatePortfolioHTML = async (resumeText, template) => {
   const prompt = buildPrompt(resumeText);
   let lastErrorMessage = "No attempts were made.";
 
-  // Outer loop: try each API key in order
-  for (const apiKey of apiKeys) {
-    // Inner loop: try each model in order for this key
+  // Use a labeled outer loop so we can break out of BOTH loops at once
+  // from inside the inner loop when we need to skip to the next key.
+  outerLoop: for (const apiKey of apiKeys) {
     for (const modelName of MODEL_PRIORITY) {
       const result = await tryGenerate(apiKey, modelName, prompt);
 
       // ----------------------------------------------------------------
-      // SUCCESS PATH
+      // SUCCESS PATH: Gemini returned a response. Now try to parse it.
       // ----------------------------------------------------------------
       if (result.ok) {
-        const raw = extractJSON(result.text);
+        let jsonString;
+        try {
+          jsonString = extractJSON(result.text);
+        } catch (extractErr) {
+          // Response came back but contained no JSON at all.
+          // This is very rare. Log and try the next model.
+          console.error(
+            `[Gemini] Could not find JSON in response from model=${modelName}. ` +
+              extractErr.message
+          );
+          lastErrorMessage = extractErr.message;
+          continue; // try next model
+        }
 
         let data;
         try {
-          data = JSON.parse(raw);
-        } catch {
-          // Gemini returned something that is not valid JSON. Log it and
-          // try the next model. This is rare but can happen occasionally.
+          data = JSON.parse(jsonString);
+        } catch (parseErr) {
+          // extractJSON found { and } but the content between them is
+          // still not valid JSON. Log the raw excerpt and try the next model.
           console.error(
-            `[Gemini] JSON parse failed on response from model=${modelName}. ` +
-              `Raw (first 200 chars): ${raw.slice(0, 200)}`
+            `[Gemini] JSON.parse failed on extracted string from model=${modelName}. ` +
+              `Extracted (first 300 chars): ${jsonString.slice(0, 300)}`
           );
           lastErrorMessage =
-            "Gemini returned output that could not be parsed as JSON. Retrying with next model.";
-          // Continue to the next model (do NOT return, do NOT break outer loop)
-          continue;
+            "Gemini returned a response that could not be parsed as valid JSON.";
+          continue; // try next model
         }
 
-        // Fill {{placeholders}} in the template
+        // All good. Fill the template.
         let finalHTML = template;
         for (const [key, value] of Object.entries(data)) {
           const regex = new RegExp(`\\{\\{${key}\\}\\}`, "gi");
           finalHTML = finalHTML.replace(regex, String(value ?? ""));
         }
 
-        // Remove any placeholders that were not filled
+        // Remove any placeholders that were not filled by the AI response
         finalHTML = finalHTML.replace(/\{\{[a-zA-Z_]+\}\}/g, "");
 
         // Sanity check: the result must be a complete HTML document
@@ -234,42 +255,42 @@ const generatePortfolioHTML = async (resumeText, template) => {
           );
         }
 
-        // One clean success log so you can confirm exactly one call was made
         console.log(
           `[Gemini] Portfolio generated successfully. model=${modelName}  key=...${apiKey.slice(-6)}`
         );
 
-        return finalHTML; // <-- ONLY exit point on success. Execution stops here.
+        // SUCCESS. Return immediately. No further models or keys will be tried.
+        return finalHTML;
       }
 
       // ----------------------------------------------------------------
-      // FAILURE PATH
+      // FAILURE PATH: Gemini call itself failed (network, auth, quota, etc.)
       // ----------------------------------------------------------------
       lastErrorMessage = result.message;
 
       if (result.errorType === "key_invalid") {
-        // This key will not work at all. No point trying other models with it.
         console.warn(
           `[Gemini] Key ...${apiKey.slice(-6)} is invalid. Skipping to next key.`
         );
-        break; // exits the inner (model) loop, moves to the next API key
+        // Skip all remaining models for this key and go to the next key.
+        continue outerLoop;
       }
 
       if (result.errorType === "quota") {
-        // Daily or per-minute quota hit for this key. Try the next key.
         console.warn(
           `[Gemini] Key ...${apiKey.slice(-6)} quota exhausted. Skipping to next key.`
         );
-        break; // exits the inner (model) loop, moves to the next API key
+        // Skip all remaining models for this key and go to the next key.
+        continue outerLoop;
       }
 
-      // model_not_found or other transient error: try the next model with the same key
+      // model_not_found or other transient error: fall through to next model
     }
-    // End of inner model loop. If we broke out, we move to the next apiKey here.
+    // End of inner model loop for this key. Move to the next key.
   }
-  // End of outer key loop. If we reach here, every combination failed.
+  // End of outer key loop. Every combination failed.
 
-  // Build a helpful error message based on what failed last
+  // Build a helpful final error message
   const lower = lastErrorMessage.toLowerCase();
 
   if (lower.includes("api key not valid") || lower.includes("permission")) {

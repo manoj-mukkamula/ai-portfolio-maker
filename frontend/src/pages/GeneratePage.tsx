@@ -3,7 +3,7 @@
 // Users upload a resume PDF/DOCX or paste text, select a template,
 // and the backend calls Gemini AI to produce a personalized portfolio HTML.
 
-import { useState, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
@@ -23,6 +23,10 @@ const GeneratePage = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+
+  // useRef-based lock prevents duplicate API calls even if the component
+  // re-renders between the button click and the state update.
+  const isSubmitting = useRef(false);
 
   const selectedTpl = TEMPLATES.find((t) => t.id === selectedTemplate);
 
@@ -47,6 +51,10 @@ const GeneratePage = () => {
 
   // Submit generation request
   const handleGenerate = async () => {
+    // Hard guard: if a request is already in-flight, do nothing.
+    // This covers edge cases where state update hasn't propagated yet.
+    if (isSubmitting.current) return;
+
     if (!selectedTemplate) {
       toast({ title: "Select a template", description: "Choose a template before generating.", variant: "destructive" });
       return;
@@ -64,7 +72,10 @@ const GeneratePage = () => {
       return;
     }
 
+    // Lock immediately before any async work
+    isSubmitting.current = true;
     setGenerating(true);
+
     try {
       let res;
       if (tab === "upload" && file) {
@@ -94,6 +105,8 @@ const GeneratePage = () => {
         variant: "destructive",
       });
     } finally {
+      // Always unlock, even if an error occurred
+      isSubmitting.current = false;
       setGenerating(false);
     }
   };
@@ -198,7 +211,7 @@ const GeneratePage = () => {
                 <textarea
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  placeholder={`Paste your resume text here...\n\nExample:\nName: Manoj Kumar\nEmail: manoj@example.com\nSkills: React, Node.js, MongoDB\nEducation: B.Tech CSE, 2025\nProjects: AI Resume Analyzer, Chat App`}
+                  placeholder={`Paste your resume text here...\n\nExample:\nName: Rohan Mehta\nEmail: rohan@example.com\nSkills: React, Node.js, MongoDB\nEducation: B.Tech CSE, 2025\nProjects: AI Resume Analyzer, Chat App`}
                   rows={12}
                   className="w-full rounded-xl bg-secondary border-0 p-4 text-sm text-foreground placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary outline-none resize-none"
                 />
@@ -317,7 +330,7 @@ const GeneratePage = () => {
             {(user?.credits ?? 0) === 0 && (
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700 p-4">
                 <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
-                  ⚠️ You have 0 credits remaining. Contact the admin to top up.
+                  You have 0 credits remaining. Contact the admin to top up.
                 </p>
               </div>
             )}
