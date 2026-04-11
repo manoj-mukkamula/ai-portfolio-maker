@@ -52,8 +52,8 @@ const AppSidebar = () => {
           <Cpu className="w-4 h-4 text-primary-foreground" />
         </div>
         <div>
-          <p className="text-sm font-bold tracking-wide text-foreground">AI PORTFOLIO</p>
-          <p className="text-[10px] text-muted-foreground tracking-wider">Maker — v1.0</p>
+          <p className="text-sm font-bold tracking-wide text-foreground">AI PORTFOLIO MAKER</p>
+          <p className="text-[10px] text-muted-foreground tracking-wider">Final Year Project</p>
         </div>
       </Link>
 

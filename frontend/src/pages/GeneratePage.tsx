@@ -249,7 +249,7 @@ const GeneratePage = () => {
                         title={tpl.name}
                         className="w-full h-full border-0 pointer-events-none"
                         style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%", height: "250%" }}
-                        sandbox="allow-same-origin"
+                        sandbox="allow-same-origin allow-scripts"
                       />
                     </div>
                     <div className="flex items-center justify-between">
@@ -291,7 +291,7 @@ const GeneratePage = () => {
                     srcDoc={selectedTpl.template}
                     title="Template Preview"
                     className="w-full h-full border-0"
-                    sandbox="allow-same-origin"
+                    sandbox="allow-same-origin allow-scripts"
                   />
                 ) : (
                   <div className="text-center">

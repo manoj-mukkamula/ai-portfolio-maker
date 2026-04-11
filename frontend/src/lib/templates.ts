@@ -1139,7 +1139,8 @@ export const TEMPLATES = [
     <h1 class="lead-headline">{{name}}</h1>
     <p class="lead-deck">{{summary}}</p>
     <div class="lead-byline">
-      <div class="byline-avatar">{{name}}</div>
+      <div class="byline-avatar" id="byline-init"></div>
+      <script>(function(){var n="{{name}}",i=n.split(" ").map(function(w){return w[0]||""}).slice(0,2).join("").toUpperCase();document.getElementById("byline-init").textContent=i||n[0]||"?"})();</script>
       <div class="byline-text">
         <span class="byline-name">{{name}}</span>
         {{title}} · {{location}} · Open to Roles
