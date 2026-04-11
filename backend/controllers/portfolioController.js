@@ -3,7 +3,11 @@
 // FIXES:
 //   1. Calls user.resetCreditsIfNeeded() before credit check (daily 5/day system)
 //   2. Returns resetsAt timestamp so frontend can show countdown
-//   3. getMe now returns creditsLastReset for frontend reset timer
+//   3. resumeText is trimmed to 8000 chars before sending to Gemini to avoid
+//      token bloat. The geminiService prompt already slices to 6000 chars inside
+//      the prompt, but trimming here prevents the entire large string from being
+//      passed around in memory needlessly.
+//   4. Added console logs for generation start/success to aid debugging.
 
 const { z } = require("zod");
 const Portfolio = require("../models/Portfolio");
@@ -11,14 +15,14 @@ const User = require("../models/User");
 const { parseResume } = require("../utils/resumeParser");
 const { generatePortfolioHTML } = require("../services/geminiService");
 
-// ── Zod schema for POST /api/portfolio/generate
+// Zod schema for POST /api/portfolio/generate
 const generateRequestSchema = z.object({
   template:     z.string().min(20, "HTML template is too short to be valid."),
   resumeText:   z.string().max(20000, "Resume text too long (max 20,000 chars).").optional(),
   templateName: z.string().max(50).optional().default("custom"),
 });
 
-// ── Zod schema for PUT /api/portfolio/:id
+// Zod schema for PUT /api/portfolio/:id
 const updatePortfolioSchema = z.object({
   html:         z.string().min(20, "HTML content too short.").optional(),
   templateName: z.string().max(50).optional(),
@@ -55,7 +59,7 @@ const generate = async (req, res, next) => {
       });
     }
 
-    // 3. Get resume text — from uploaded file OR pasted text in body
+    // 3. Get resume text from uploaded file OR pasted text in body
     let resumeText = "";
     if (req.file) {
       resumeText = await parseResume(
@@ -72,7 +76,19 @@ const generate = async (req, res, next) => {
       });
     }
 
-    // 4. Generate filled HTML via Gemini (fast 2-step approach)
+    // Trim resume to 8000 chars to keep Gemini token usage reasonable.
+    // The prompt inside geminiService further slices to 6000 chars as an extra guard.
+    if (resumeText.length > 8000) {
+      resumeText = resumeText.slice(0, 8000);
+      console.log(`[Portfolio] Resume trimmed to 8000 chars for user ${user.email}`);
+    }
+
+    // 4. Generate filled HTML via Gemini
+    console.log(
+      `[Portfolio] Starting generation for user ${user.email}, template=${templateName}, ` +
+      `credits remaining before=${user.credits}`
+    );
+
     const finalHTML = await generatePortfolioHTML(resumeText, template);
 
     // 5. Save portfolio + deduct 1 credit atomically
@@ -80,6 +96,11 @@ const generate = async (req, res, next) => {
       Portfolio.create({ userId: user._id, html: finalHTML, templateName }),
       User.findByIdAndUpdate(user._id, { $inc: { credits: -1 } }),
     ]);
+
+    console.log(
+      `[Portfolio] Success for user ${user.email}, portfolio=${portfolio._id}, ` +
+      `credits remaining after=${user.credits - 1}`
+    );
 
     res.status(201).json({
       success: true,
@@ -93,6 +114,7 @@ const generate = async (req, res, next) => {
       },
     });
   } catch (err) {
+    console.error(`[Portfolio] Generation error for user ${req.user?._id}: ${err.message}`);
     next(err);
   }
 };
@@ -167,7 +189,11 @@ const update = async (req, res, next) => {
       return res.status(404).json({ success: false, message: "Portfolio not found." });
     }
 
-    res.status(200).json({ success: true, message: "Portfolio updated successfully.", portfolio });
+    res.status(200).json({
+      success: true,
+      message: "Portfolio updated successfully.",
+      portfolio,
+    });
   } catch (err) {
     next(err);
   }
