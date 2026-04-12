@@ -1,11 +1,6 @@
 // src/App.tsx
-//
-// CHANGES:
-//   1. SplashScreen added — shown once per browser session (sessionStorage guard).
-//      It renders outside BrowserRouter so it covers the entire viewport cleanly.
-//   2. /login and /register both point to AuthPage (the combined animated auth page).
-//      The old LoginPage and RegisterPage imports are removed.
-//   3. All other routes, guards, providers, and auth logic are untouched.
+// Added ThemeProvider wrapping everything so dark mode works across all pages.
+// Auth pages excluded from dark mode (they have their own fixed dark background).
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,6 +9,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SplashScreen from "@/components/SplashScreen";
 import AuthPage from "./pages/AuthPage";
@@ -26,7 +22,6 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Show the splash only once per browser session, not on every navigation
 const hasSeenSplash = sessionStorage.getItem("splash_shown") === "true";
 
 const App = () => {
@@ -38,8 +33,7 @@ const App = () => {
   };
 
   return (
-    <>
-      {/* Splash screen sits outside the router so it overlays everything */}
+    <ThemeProvider>
       {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
 
       <QueryClientProvider client={queryClient}>
@@ -50,38 +44,20 @@ const App = () => {
             <AuthProvider>
               <Routes>
                 <Route path="/" element={<Navigate to="/login" replace />} />
-
-                {/* Both /login and /register use the combined AuthPage */}
                 <Route path="/login"    element={<AuthPage />} />
                 <Route path="/register" element={<AuthPage />} />
-
-                <Route
-                  path="/dashboard"
-                  element={<ProtectedRoute><DashboardPage /></ProtectedRoute>}
-                />
-                <Route
-                  path="/generate"
-                  element={<ProtectedRoute><GeneratePage /></ProtectedRoute>}
-                />
-                <Route
-                  path="/history"
-                  element={<ProtectedRoute><HistoryPage /></ProtectedRoute>}
-                />
-                <Route
-                  path="/preview/:id"
-                  element={<ProtectedRoute><PreviewPage /></ProtectedRoute>}
-                />
-                <Route
-                  path="/editor/:id"
-                  element={<ProtectedRoute><EditorPage /></ProtectedRoute>}
-                />
+                <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+                <Route path="/generate"  element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
+                <Route path="/history"   element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+                <Route path="/preview/:id" element={<ProtectedRoute><PreviewPage /></ProtectedRoute>} />
+                <Route path="/editor/:id"  element={<ProtectedRoute><EditorPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
-    </>
+    </ThemeProvider>
   );
 };
 

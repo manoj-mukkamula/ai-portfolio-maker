@@ -159,12 +159,12 @@ const tryGenerate = async (apiKey, modelName, prompt) => {
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
 
-    console.log(`[Gemini] OK  model=${modelName}  key=...${apiKey.slice(-6)}`);
+    console.log(`[Gemini] OK  model=${modelName}  key=...${apiKey.slice(-3)}`);
     return { ok: true, text };
   } catch (err) {
     const errorType = classifyError(err);
     console.warn(
-      `[Gemini] FAIL  model=${modelName}  key=...${apiKey.slice(-6)}  type=${errorType}  msg=${(err.message || "").slice(0, 100)}`
+      `[Gemini] FAIL  model=${modelName}  key=...${apiKey.slice(-3)}  type=${errorType}  msg=${(err.message || "").slice(0, 100)}`
     );
     return { ok: false, errorType, message: err.message || "Unknown error" };
   }
@@ -318,7 +318,7 @@ const generatePortfolioHTML = async (resumeText, template) => {
         }
 
         console.log(
-          `[Gemini] Portfolio generated successfully. model=${modelName}  key=...${apiKey.slice(-6)}`
+          `[Gemini] Portfolio generated successfully. model=${modelName}  key=...${apiKey.slice(-3)}`
         );
 
         return finalHTML;
@@ -329,14 +329,14 @@ const generatePortfolioHTML = async (resumeText, template) => {
 
       if (result.errorType === "key_invalid") {
         console.warn(
-          `[Gemini] Key ...${apiKey.slice(-6)} is invalid. Skipping to next key.`
+          `[Gemini] Key ...${apiKey.slice(-3)} is invalid. Skipping to next key.`
         );
         continue outerLoop;
       }
 
       if (result.errorType === "quota") {
         console.warn(
-          `[Gemini] Key ...${apiKey.slice(-6)} quota exhausted. Skipping to next key.`
+          `[Gemini] Key ...${apiKey.slice(-3)} quota exhausted. Skipping to next key.`
         );
         continue outerLoop;
       }

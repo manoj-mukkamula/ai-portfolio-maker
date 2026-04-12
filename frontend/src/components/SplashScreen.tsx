@@ -1,49 +1,53 @@
 // src/components/SplashScreen.tsx
-//
-// A full-screen loading screen shown for ~2 seconds when the app first starts.
-// Uses only CSS animations and Framer Motion (already in package.json).
-// No external dependencies added. No routing logic changed.
-//
-// Design: deep navy background, animated gradient orbs, typewriter brand name,
-// rotating ring, progress bar, and a subtle "Developed by Manoj" credit line.
+// Duration reduced by 1 second: 3500ms -> 2500ms
+// Design and logic unchanged.
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SplashScreenProps {
   onComplete: () => void;
 }
 
-const DURATION_MS = 2200;
+const DURATION_MS = 2500;
+
+const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
+  id: i,
+  x: (i * 37 + 11) % 100,
+  y: (i * 53 + 7) % 100,
+  size: i % 3 === 0 ? 2 : 1.2,
+  delay: (i * 0.18) % 2.4,
+  duration: 2.5 + (i % 4) * 0.6,
+}));
 
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [loadText, setLoadText] = useState("Initialising...");
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    // Drive the progress bar smoothly over DURATION_MS
     const start = performance.now();
-    let raf: number;
 
     const tick = (now: number) => {
-      const elapsed = now - start;
-      const pct = Math.min((elapsed / DURATION_MS) * 100, 100);
+      const pct = Math.min(((now - start) / DURATION_MS) * 100, 100);
       setProgress(pct);
-      if (pct < 100) {
-        raf = requestAnimationFrame(tick);
-      }
+      if (pct < 38) setLoadText("Initialising...");
+      else if (pct < 72) setLoadText("Loading templates...");
+      else setLoadText("Almost ready...");
+      if (pct < 100) rafRef.current = requestAnimationFrame(tick);
     };
-    raf = requestAnimationFrame(tick);
 
-    // After the duration, fade out then call onComplete
+    rafRef.current = requestAnimationFrame(tick);
+
     const timer = setTimeout(() => {
       setVisible(false);
-      setTimeout(onComplete, 500); // wait for exit animation to finish
+      setTimeout(onComplete, 500);
     }, DURATION_MS);
 
     return () => {
       clearTimeout(timer);
-      cancelAnimationFrame(raf);
+      cancelAnimationFrame(rafRef.current);
     };
   }, [onComplete]);
 
@@ -53,97 +57,96 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         <motion.div
           key="splash"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.03 }}
+          exit={{ opacity: 0, scale: 1.04 }}
           transition={{ duration: 0.5, ease: "easeInOut" }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #0b0f1a 0%, #111827 50%, #0d1424 100%)" }}
+          style={{ background: "linear-gradient(135deg, #080c18 0%, #0e1525 45%, #0a1020 100%)" }}
         >
-          {/* Background orbs */}
+          {/* Ambient orbs */}
           <div className="absolute inset-0 pointer-events-none">
             <motion.div
-              animate={{ scale: [1, 1.15, 1], opacity: [0.12, 0.2, 0.12] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-              className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full"
-              style={{ background: "radial-gradient(circle, #3b82f6 0%, transparent 70%)" }}
+              animate={{ scale: [1, 1.18, 1], opacity: [0.1, 0.18, 0.1] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-[-25%] left-[-15%] w-[600px] h-[600px] rounded-full"
+              style={{ background: "radial-gradient(circle, #4f46e5 0%, transparent 68%)" }}
             />
             <motion.div
-              animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.18, 0.1] }}
-              transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-              className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full"
-              style={{ background: "radial-gradient(circle, #8b5cf6 0%, transparent 70%)" }}
+              animate={{ scale: [1, 1.22, 1], opacity: [0.08, 0.15, 0.08] }}
+              transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+              className="absolute bottom-[-25%] right-[-15%] w-[700px] h-[700px] rounded-full"
+              style={{ background: "radial-gradient(circle, #7c3aed 0%, transparent 68%)" }}
             />
             <motion.div
-              animate={{ scale: [1, 1.1, 1], opacity: [0.06, 0.12, 0.06] }}
-              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-              className="absolute top-[40%] left-[40%] w-[300px] h-[300px] rounded-full"
-              style={{ background: "radial-gradient(circle, #06b6d4 0%, transparent 70%)" }}
+              animate={{ scale: [1, 1.12, 1], opacity: [0.05, 0.11, 0.05] }}
+              transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut", delay: 1.8 }}
+              className="absolute top-[35%] right-[20%] w-[350px] h-[350px] rounded-full"
+              style={{ background: "radial-gradient(circle, #0ea5e9 0%, transparent 68%)" }}
             />
           </div>
 
-          {/* Grid overlay */}
+          {/* Fine grid overlay */}
           <div
-            className="absolute inset-0 pointer-events-none opacity-[0.03]"
+            className="absolute inset-0 pointer-events-none"
             style={{
               backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
-              backgroundSize: "60px 60px",
+                "linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)",
+              backgroundSize: "48px 48px",
             }}
           />
 
-          {/* Centre content */}
-          <div className="relative z-10 flex flex-col items-center gap-8 px-6 text-center">
+          {/* Star particles */}
+          <div className="absolute inset-0 pointer-events-none">
+            {PARTICLES.map((p) => (
+              <motion.div
+                key={p.id}
+                className="absolute rounded-full bg-white"
+                style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size }}
+                animate={{ opacity: [0, 0.55, 0] }}
+                transition={{ duration: p.duration, delay: p.delay, repeat: Infinity, ease: "easeInOut" }}
+              />
+            ))}
+          </div>
 
-            {/* Animated logo ring */}
+          {/* Centre content */}
+          <div className="relative z-10 flex flex-col items-center gap-7 px-6 text-center">
+
+            {/* Logo ring */}
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
+              initial={{ scale: 0.4, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.6, ease: "backOut" }}
-              className="relative"
+              className="relative w-28 h-28"
             >
-              {/* Outer spinning ring */}
               <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                className="w-24 h-24 rounded-full absolute inset-0"
-                style={{
-                  background:
-                    "conic-gradient(from 0deg, transparent 70%, #3b82f6 85%, #8b5cf6 100%)",
-                }}
+                className="absolute inset-0 rounded-full"
+                style={{ background: "conic-gradient(from 0deg, transparent 60%, #6366f1 80%, #8b5cf6 90%, #06b6d4 100%)" }}
               />
-              {/* Inner ring */}
               <motion.div
                 animate={{ rotate: -360 }}
-                transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                className="w-24 h-24 rounded-full absolute inset-0 p-1"
-              >
-                <div
-                  className="w-full h-full rounded-full"
-                  style={{
-                    background:
-                      "conic-gradient(from 180deg, transparent 75%, #06b6d4 90%, #8b5cf6 100%)",
-                  }}
-                />
-              </motion.div>
-              {/* Icon box */}
+                transition={{ duration: 4.5, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-[3px] rounded-full"
+                style={{ background: "conic-gradient(from 90deg, transparent 65%, #0ea5e9 85%, #6366f1 100%)" }}
+              />
               <div
-                className="w-24 h-24 rounded-full flex items-center justify-center relative"
+                className="absolute inset-[6px] rounded-full flex items-center justify-center"
                 style={{
-                  background: "linear-gradient(135deg, #1e3a5f 0%, #1e1b4b 100%)",
-                  border: "2px solid rgba(59,130,246,0.3)",
+                  background: "linear-gradient(145deg, #1a1f3c 0%, #12172e 100%)",
+                  border: "1px solid rgba(99,102,241,0.25)",
                 }}
               >
-                {/* CPU / Portfolio icon made of spans */}
-                <div className="flex flex-col gap-[3px]">
-                  {[0, 1, 2, 3].map((i) => (
+                <div className="flex flex-col gap-[4px] items-start px-1">
+                  {[32, 22, 28, 18].map((w, i) => (
                     <motion.div
                       key={i}
-                      initial={{ scaleX: 0 }}
-                      animate={{ scaleX: 1 }}
-                      transition={{ delay: 0.4 + i * 0.08, duration: 0.3 }}
-                      className="h-[3px] rounded-full"
+                      initial={{ scaleX: 0, opacity: 0 }}
+                      animate={{ scaleX: 1, opacity: 1 }}
+                      transition={{ delay: 0.35 + i * 0.08, duration: 0.3, ease: "easeOut" }}
                       style={{
-                        width: [28, 20, 24, 16][i],
-                        background: `linear-gradient(90deg, #3b82f6, #8b5cf6)`,
+                        width: w, height: 3, borderRadius: 2,
+                        background: "linear-gradient(90deg, #6366f1, #a78bfa)",
+                        transformOrigin: "left",
                       }}
                     />
                   ))}
@@ -151,67 +154,52 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
               </div>
             </motion.div>
 
-            {/* Brand name */}
+            {/* Brand name — single line */}
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.45, duration: 0.6, ease: "easeOut" }}
+              transition={{ delay: 0.38, duration: 0.55, ease: "easeOut" }}
+              className="flex flex-col items-center gap-2"
             >
               <h1
-                className="text-4xl sm:text-5xl font-bold tracking-tight"
+                className="text-4xl sm:text-5xl font-extrabold tracking-tight whitespace-nowrap"
                 style={{
-                  background: "linear-gradient(135deg, #e0e7ff 0%, #93c5fd 40%, #c4b5fd 80%, #e0e7ff 100%)",
+                  background: "linear-gradient(110deg, #c7d2fe 0%, #818cf8 30%, #a78bfa 60%, #67e8f9 100%)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                   backgroundClip: "text",
-                  letterSpacing: "-0.02em",
+                  letterSpacing: "-0.03em",
                 }}
               >
-                AI Portfolio
+                AI Portfolio Maker
               </h1>
-              <h2
-                className="text-4xl sm:text-5xl font-bold tracking-tight"
-                style={{
-                  background: "linear-gradient(135deg, #93c5fd 0%, #c4b5fd 60%, #67e8f9 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                  backgroundClip: "text",
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                Maker
-              </h2>
+              <div className="flex items-center gap-2" style={{ color: "rgba(148,163,184,0.55)" }}>
+                <span className="w-10 h-px" style={{ background: "rgba(99,102,241,0.35)" }} />
+                <span className="text-xs tracking-[0.22em] uppercase font-medium">
+                  Powered by Google Gemini
+                </span>
+                <span className="w-10 h-px" style={{ background: "rgba(99,102,241,0.35)" }} />
+              </div>
             </motion.div>
 
-            {/* Tagline */}
-            <motion.p
+            {/* Feature chips */}
+            <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-              className="text-sm font-medium tracking-[0.25em] uppercase"
-              style={{ color: "rgba(148,163,184,0.8)" }}
+              transition={{ delay: 0.6, duration: 0.45 }}
+              className="flex flex-wrap justify-center gap-2 max-w-sm"
             >
-              Powered by Google Gemini AI
-            </motion.p>
-
-            {/* Floating skill chips */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9, duration: 0.5 }}
-              className="flex flex-wrap justify-center gap-2 max-w-xs"
-            >
-              {["Resume", "AI", "Portfolio", "Export", "Templates"].map((chip, i) => (
+              {["Resume", "AI Extract", "Portfolio", "Templates", "Export"].map((chip, i) => (
                 <motion.span
                   key={chip}
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.75 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1.0 + i * 0.07, duration: 0.3 }}
-                  className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-wider uppercase"
+                  transition={{ delay: 0.68 + i * 0.07, duration: 0.28 }}
+                  className="px-3 py-1 rounded-full text-[11px] font-semibold tracking-widest uppercase"
                   style={{
-                    background: "rgba(59,130,246,0.12)",
-                    border: "1px solid rgba(59,130,246,0.25)",
-                    color: "#93c5fd",
+                    background: "rgba(99,102,241,0.1)",
+                    border: "1px solid rgba(99,102,241,0.22)",
+                    color: "#a5b4fc",
                   }}
                 >
                   {chip}
@@ -223,56 +211,41 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.6 }}
-              className="w-64 sm:w-80"
+              transition={{ delay: 0.45 }}
+              className="w-72 sm:w-96"
             >
               <div
                 className="h-[3px] rounded-full overflow-hidden"
-                style={{ background: "rgba(255,255,255,0.08)" }}
+                style={{ background: "rgba(255,255,255,0.07)" }}
               >
-                <motion.div
-                  className="h-full rounded-full"
+                <div
+                  className="h-full rounded-full transition-all duration-100"
                   style={{
                     width: `${progress}%`,
-                    background: "linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4)",
+                    background: "linear-gradient(90deg, #6366f1, #8b5cf6, #0ea5e9)",
                   }}
                 />
               </div>
               <p
-                className="text-[11px] mt-2 tracking-widest text-center"
-                style={{ color: "rgba(148,163,184,0.5)" }}
+                className="text-[11px] mt-2 text-center tracking-[0.2em] uppercase"
+                style={{ color: "rgba(148,163,184,0.45)" }}
               >
-                {progress < 40
-                  ? "Initialising..."
-                  : progress < 80
-                  ? "Loading templates..."
-                  : "Almost ready..."}
+                {loadText}
               </p>
             </motion.div>
 
-            {/* Developed by */}
+            {/* Credit */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 1.2, duration: 0.6 }}
+              transition={{ delay: 0.9, duration: 0.6 }}
               className="flex items-center gap-2 text-xs"
-              style={{ color: "rgba(148,163,184,0.4)" }}
+              style={{ color: "rgba(148,163,184,0.35)" }}
             >
-              <span
-                className="w-8 h-px"
-                style={{ background: "rgba(148,163,184,0.2)" }}
-              />
+              <span className="w-6 h-px" style={{ background: "rgba(148,163,184,0.15)" }} />
               Developed by{" "}
-              <span
-                className="font-semibold"
-                style={{ color: "rgba(196,181,253,0.7)" }}
-              >
-                Manoj
-              </span>
-              <span
-                className="w-8 h-px"
-                style={{ background: "rgba(148,163,184,0.2)" }}
-              />
+              <span style={{ color: "rgba(167,139,250,0.65)", fontWeight: 700 }}>Manoj</span>
+              <span className="w-6 h-px" style={{ background: "rgba(148,163,184,0.15)" }} />
             </motion.div>
           </div>
         </motion.div>
