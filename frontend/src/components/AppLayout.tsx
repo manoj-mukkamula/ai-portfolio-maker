@@ -1,19 +1,21 @@
 // src/components/AppLayout.tsx
 // Changes:
-//  - Profile avatar is now a clickable dropdown (name, email, credits, logout)
-//  - Dark mode toggle button added to navbar (works via ThemeContext)
-//  - Credits pill retained with colour coding
-//  - Mobile menu improved
+//  - Removed dark mode toggle from top navbar (it lives in the sidebar — no duplication)
+//  - Mobile menu now includes a dark mode toggle (since sidebar is hidden on mobile)
+//  - Profile dropdown copy humanized, no em dashes
+//  - Brand name on mobile: "AI Portfolio Maker" as a single line
+//  - Consistent gradient/style with rest of app
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Zap, Menu, LogOut, User, Sun, Moon, ChevronDown, X } from "lucide-react";
+import { Zap, Menu, LogOut, User, Sun, Moon, ChevronDown, X, BrainCircuit } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
 
 const MobileMenu = ({ onClose }: { onClose: () => void }) => {
   const { logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -25,16 +27,22 @@ const MobileMenu = ({ onClose }: { onClose: () => void }) => {
   return (
     <div className="fixed inset-0 z-50 bg-card/98 backdrop-blur-sm flex flex-col lg:hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <span className="font-bold text-foreground">Menu</span>
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
+            <BrainCircuit className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="font-bold text-foreground text-sm">AI Portfolio Maker</span>
+        </div>
         <button onClick={onClose} className="p-2 rounded-lg hover:bg-secondary transition-colors">
           <X className="w-5 h-5 text-foreground" />
         </button>
       </div>
-      <nav className="flex flex-col gap-1 p-4">
+      <nav className="flex flex-col gap-1 p-4 flex-1">
         {[
           { label: "Dashboard", path: "/dashboard" },
-          { label: "Generate", path: "/generate" },
-          { label: "History",  path: "/history"  },
+          { label: "Generate",  path: "/generate"  },
+          { label: "History",   path: "/history"   },
         ].map((item) => (
           <Link
             key={item.path}
@@ -45,18 +53,28 @@ const MobileMenu = ({ onClose }: { onClose: () => void }) => {
             {item.label}
           </Link>
         ))}
+      </nav>
+      <div className="p-4 border-t border-border space-y-2">
+        {/* Dark mode toggle in mobile menu — since sidebar is hidden on mobile */}
+        <button
+          onClick={toggleTheme}
+          className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-base font-medium text-foreground hover:bg-secondary transition-colors w-full"
+        >
+          {theme === "dark"
+            ? <><Sun className="w-4 h-4 text-amber-400" /> Light mode</>
+            : <><Moon className="w-4 h-4" /> Dark mode</>}
+        </button>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-destructive hover:bg-destructive/10 transition-colors mt-2"
+          className="flex items-center gap-2 px-4 py-3 rounded-xl text-base font-medium text-destructive hover:bg-destructive/10 transition-colors w-full"
         >
           <LogOut className="w-4 h-4" /> Log out
         </button>
-      </nav>
+      </div>
     </div>
   );
 };
 
-// Profile dropdown
 const ProfileDropdown = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -90,15 +108,11 @@ const ProfileDropdown = () => {
         >
           {user?.name?.charAt(0).toUpperCase() ?? "U"}
         </div>
-        <ChevronDown
-          className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
-        />
+        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
-        <div
-          className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border bg-card shadow-modal z-50 overflow-hidden"
-        >
+        <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border bg-card shadow-modal z-50 overflow-hidden">
           {/* User info */}
           <div className="px-4 py-3.5 border-b border-border">
             <div className="flex items-center gap-3">
@@ -119,11 +133,7 @@ const ProfileDropdown = () => {
           <div className="px-4 py-3 border-b border-border">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground font-medium">Credits remaining</span>
-              <span
-                className={`text-xs font-bold ${
-                  credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-emerald-500"
-                }`}
-              >
+              <span className={`text-xs font-bold ${credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-emerald-500"}`}>
                 {credits} / 5
               </span>
             </div>
@@ -132,19 +142,13 @@ const ProfileDropdown = () => {
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${(credits / 5) * 100}%`,
-                  background:
-                    credits === 0
-                      ? "#ef4444"
-                      : credits <= 2
-                      ? "#f59e0b"
-                      : "linear-gradient(90deg, #6366f1, #22c55e)",
+                  background: credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "linear-gradient(90deg, #6366f1, #22c55e)",
                 }}
               />
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">Resets every 24 hours</p>
           </div>
 
-          {/* Account link */}
           <div className="p-2">
             <button className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm text-foreground hover:bg-secondary transition-colors">
               <User className="w-4 h-4 text-muted-foreground" />
@@ -166,7 +170,6 @@ const ProfileDropdown = () => {
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const credits = user?.credits ?? 0;
@@ -191,35 +194,21 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             <Menu className="w-5 h-5 text-foreground" />
           </button>
 
-          {/* Brand on mobile */}
+          {/* Brand on mobile only */}
           <span className="lg:hidden text-sm font-bold text-foreground">AI Portfolio Maker</span>
 
           <div className="flex items-center gap-2 ml-auto">
             {/* Credits pill */}
             <div
               className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium cursor-default ${creditPillClass}`}
-              title={
-                credits === 0
-                  ? "No credits left, resets every 24 hours"
-                  : `${credits} of 5 daily credits remaining`
-              }
+              title={credits === 0 ? "No credits left, resets every 24 hours" : `${credits} of 5 daily credits remaining`}
             >
               <Zap className="w-3.5 h-3.5" />
               {credits} Credit{credits !== 1 ? "s" : ""}
             </div>
 
-            {/* Dark mode toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-xl border border-border hover:bg-secondary transition-colors"
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {theme === "dark" ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-muted-foreground" />
-              )}
-            </button>
+            {/* Dark mode toggle removed from here — lives in sidebar.
+                Mobile users get it inside the hamburger menu. */}
 
             {/* Profile dropdown */}
             <ProfileDropdown />

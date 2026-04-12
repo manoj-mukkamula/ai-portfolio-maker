@@ -1,12 +1,12 @@
 // src/pages/DashboardPage.tsx
-// Improvements:
-//  - Hero section with animated gradient welcome
-//  - Welcome uses full name, not email
-//  - Portfolio cards have hover lift, animated shadow, delete confirm
-//  - "How it Works" is now a stepper/timeline with icons
-//  - Credits card has progress bar
-//  - Stats cards have hover effects
-//  - Consistent gradient button style
+// Changes:
+//  - Hero section height reduced (py-6 instead of p-8) so content shows above fold
+//  - "How AI Portfolio Maker works" step cards have hover effects and card styling
+//  - Recent portfolios grid moved up, more visible without scrolling
+//  - Responsive "How it works" grid: 2 cols mobile, 4 cols desktop
+//  - Greeting uses first name (from stored name, not email)
+//  - Consistent gradient button style throughout
+//  - No em dashes in any copy
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -36,10 +36,7 @@ const TEMPLATE_STYLES: Record<string, { bg: string; accent: string; label: strin
 };
 
 function PortfolioCard({
-  portfolio,
-  onPreview,
-  onEdit,
-  onDelete,
+  portfolio, onPreview, onEdit, onDelete,
 }: {
   portfolio: Portfolio;
   onPreview: () => void;
@@ -47,9 +44,7 @@ function PortfolioCard({
   onDelete: () => void;
 }) {
   const s = TEMPLATE_STYLES[portfolio.templateName] ?? {
-    bg: "from-secondary to-muted",
-    accent: "#6366f1",
-    label: portfolio.templateName,
+    bg: "from-secondary to-muted", accent: "#6366f1", label: portfolio.templateName,
   };
   const initial = (portfolio.templateName?.[0] ?? "P").toUpperCase();
   const dateStr = new Date(portfolio.createdAt).toLocaleDateString("en-IN", {
@@ -61,35 +56,24 @@ function PortfolioCard({
       className="group bg-card rounded-2xl border border-border overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated hover:border-primary/30"
       onClick={onPreview}
     >
-      {/* Thumbnail */}
-      <div className={`h-40 bg-gradient-to-br ${s.bg} flex items-center justify-center relative overflow-hidden`}>
+      <div className={`h-36 bg-gradient-to-br ${s.bg} flex items-center justify-center relative overflow-hidden`}>
         <span
           className="text-6xl font-extrabold select-none transition-transform duration-300 group-hover:scale-110"
           style={{ color: s.accent, opacity: 0.9 }}
         >
           {initial}
         </span>
-        {/* Hover overlay */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
-          <button
-            onClick={(e) => { e.stopPropagation(); onPreview(); }}
-            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors"
-            title="Preview"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onPreview(); }}
+            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors" title="Preview">
             <Eye className="w-4 h-4 text-white" />
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors"
-            title="Edit"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors" title="Edit">
             <Pencil className="w-4 h-4 text-white" />
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-2.5 rounded-xl bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm transition-colors"
-            title="Delete"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="p-2.5 rounded-xl bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm transition-colors" title="Delete">
             <Trash2 className="w-4 h-4 text-white" />
           </button>
         </div>
@@ -105,25 +89,18 @@ function PortfolioCard({
           </span>
         </div>
         <p className="text-xs text-muted-foreground mb-3">AI Generated Portfolio</p>
-
         <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); onPreview(); }}
+          <button onClick={(e) => { e.stopPropagation(); onPreview(); }}
             className="flex-1 h-8 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-          >
+            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
             View
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="h-8 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-secondary transition-colors"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onEdit(); }}
+            className="h-8 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-secondary transition-colors">
             Edit
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="h-8 px-2 rounded-lg border border-border hover:bg-destructive/10 hover:border-destructive/30 transition-colors"
-          >
+          <button onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="h-8 px-2 rounded-lg border border-border hover:bg-destructive/10 hover:border-destructive/30 transition-colors">
             <Trash2 className="w-3.5 h-3.5 text-destructive" />
           </button>
         </div>
@@ -133,30 +110,10 @@ function PortfolioCard({
 }
 
 const HOW_IT_WORKS = [
-  {
-    icon: Upload,
-    title: "Upload your resume",
-    desc: "Drop a PDF or DOCX, or paste your resume text directly",
-    color: "#6366f1",
-  },
-  {
-    icon: ImageIcon,
-    title: "Pick a template",
-    desc: "Choose from 6 professionally designed portfolio styles",
-    color: "#8b5cf6",
-  },
-  {
-    icon: Cpu,
-    title: "Gemini AI extracts your data",
-    desc: "Google Gemini reads your resume and fills every section",
-    color: "#06b6d4",
-  },
-  {
-    icon: Download,
-    title: "Download or edit",
-    desc: "Get a standalone HTML file or fine-tune it in the editor",
-    color: "#22c55e",
-  },
+  { icon: Upload,    title: "Upload your resume",        desc: "Drop a PDF or DOCX, or paste your resume text directly",                   color: "#6366f1", step: 1 },
+  { icon: ImageIcon, title: "Pick a template",           desc: "Choose from 6 professionally designed portfolio styles",                   color: "#8b5cf6", step: 2 },
+  { icon: Cpu,       title: "Gemini AI extracts your data", desc: "Google Gemini reads your resume and fills every section automatically", color: "#06b6d4", step: 3 },
+  { icon: Download,  title: "Download or edit",          desc: "Get a standalone HTML file or fine-tune it in the editor",                 color: "#22c55e", step: 4 },
 ];
 
 const DashboardPage = () => {
@@ -167,12 +124,9 @@ const DashboardPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    portfolioApi
-      .history()
+    portfolioApi.history()
       .then((res) => setPortfolios(res.data.portfolios || []))
-      .catch(() =>
-        toast({ title: "Could not load portfolios", description: "Try refreshing the page.", variant: "destructive" })
-      )
+      .catch(() => toast({ title: "Could not load portfolios", description: "Try refreshing the page.", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -190,7 +144,6 @@ const DashboardPage = () => {
   const recentPortfolios = portfolios.slice(0, 3);
   const totalCount = portfolios.length;
   const credits = user?.credits ?? 0;
-  const lastName = user?.name?.split(" ").slice(-1)[0] ?? "";
   const firstName = user?.name?.split(" ")[0] ?? "there";
 
   const lastActivity = portfolios[0]
@@ -205,29 +158,22 @@ const DashboardPage = () => {
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-6">
 
-        {/* Hero banner */}
+        {/* Hero banner — reduced height to keep content above fold */}
         <div
-          className="relative rounded-2xl overflow-hidden p-8 text-white"
+          className="relative rounded-2xl overflow-hidden px-7 py-6 text-white"
           style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0e7490 100%)" }}
         >
-          {/* Background pattern */}
-          <div
-            className="absolute inset-0 opacity-[0.07]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
-            }}
-          />
-          <div className="absolute top-[-40px] right-[-40px] w-64 h-64 rounded-full opacity-20"
+          <div className="absolute inset-0 opacity-[0.07]"
+            style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+          <div className="absolute top-[-40px] right-[-40px] w-56 h-56 rounded-full opacity-20"
             style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%)" }} />
 
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <p className="text-white/60 text-sm font-medium tracking-wide mb-1">Good to see you back</p>
-              <h1 className="text-3xl font-extrabold mb-2 leading-tight">
+              <p className="text-white/60 text-xs font-medium tracking-wide mb-0.5">Good to see you back</p>
+              <h1 className="text-2xl font-extrabold mb-1.5 leading-tight">
                 Hello, {firstName}! 👋
               </h1>
               <p className="text-white/75 max-w-md text-sm leading-relaxed">
@@ -237,7 +183,7 @@ const DashboardPage = () => {
             </div>
             <button
               onClick={() => navigate("/generate")}
-              className="shrink-0 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white font-semibold text-sm transition-all hover:bg-white/90 hover:shadow-lg active:scale-[0.98]"
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white font-semibold text-sm transition-all hover:bg-white/90 hover:shadow-lg active:scale-[0.98]"
               style={{ color: "#4f46e5" }}
             >
               <Sparkles className="w-4 h-4" />
@@ -247,87 +193,58 @@ const DashboardPage = () => {
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Credits card */}
-          <div className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-card rounded-2xl border border-border p-4 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Zap className="w-4 h-4 text-primary" />
               </div>
-              <span
-                className={`text-2xl font-extrabold ${
-                  credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-foreground"
-                }`}
-              >
+              <span className={`text-2xl font-extrabold ${credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-foreground"}`}>
                 {credits}
               </span>
             </div>
-            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold mb-2">
-              Credits Left
-            </p>
+            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold mb-1.5">Credits Left</p>
             <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${(credits / 5) * 100}%`,
-                  background:
-                    credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "linear-gradient(90deg, #6366f1, #22c55e)",
-                }}
-              />
+              <div className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${(credits / 5) * 100}%`, background: credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "linear-gradient(90deg, #6366f1, #22c55e)" }} />
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1.5">Resets every 24 hours</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Resets every 24 hours</p>
           </div>
 
-          {/* Total generated */}
-          <div className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+          <div className="bg-card rounded-2xl border border-border p-4 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
+            <div className="flex items-center justify-between mb-2">
+              <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                 <ImageIcon className="w-4 h-4 text-primary" />
               </div>
               <span className="text-2xl font-extrabold text-foreground">{totalCount}</span>
             </div>
-            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold">
-              Portfolios Made
-            </p>
+            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold">Portfolios Made</p>
             <p className="text-xs text-muted-foreground mt-1">Total generated so far</p>
           </div>
 
-          {/* Last activity */}
-          <div className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Clock className="w-4 h-4 text-primary" />
-              </div>
+          <div className="bg-card rounded-2xl border border-border p-4 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+              <Clock className="w-4 h-4 text-primary" />
             </div>
-            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold mb-1">
-              Last Activity
-            </p>
+            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold mb-1">Last Activity</p>
             <p className="text-sm font-semibold text-foreground">{lastActivity}</p>
           </div>
 
-          {/* Member since */}
-          <div className="bg-card rounded-2xl border border-border p-5 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
-            <div className="flex items-center justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                <CalendarDays className="w-4 h-4 text-primary" />
-              </div>
+          <div className="bg-card rounded-2xl border border-border p-4 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center mb-2">
+              <CalendarDays className="w-4 h-4 text-primary" />
             </div>
-            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold mb-1">
-              Member Since
-            </p>
+            <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold mb-1">Member Since</p>
             <p className="text-sm font-semibold text-foreground">{memberSince}</p>
           </div>
         </div>
 
         {/* Recent Portfolios */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-foreground">Recent Portfolios</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">Recent Portfolios</h2>
             {totalCount > 3 && (
-              <Link
-                to="/history"
-                className="text-sm text-primary font-semibold flex items-center gap-1 hover:underline"
-              >
+              <Link to="/history" className="text-sm text-primary font-semibold flex items-center gap-1 hover:underline">
                 View all <ArrowRight className="w-3 h-3" />
               </Link>
             )}
@@ -336,21 +253,19 @@ const DashboardPage = () => {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card rounded-2xl border border-border h-64 animate-pulse" />
+                <div key={i} className="bg-card rounded-2xl border border-border h-56 animate-pulse" />
               ))}
             </div>
           ) : recentPortfolios.length === 0 ? (
-            <div className="text-center py-16 bg-card rounded-2xl border border-border border-dashed">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <ImageIcon className="w-7 h-7 text-primary/50" />
+            <div className="text-center py-12 bg-card rounded-2xl border border-border border-dashed">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                <ImageIcon className="w-6 h-6 text-primary/50" />
               </div>
               <p className="text-foreground font-semibold mb-1">No portfolios yet</p>
-              <p className="text-sm text-muted-foreground mb-5">
-                Generate your first AI portfolio and see it here.
-              </p>
+              <p className="text-sm text-muted-foreground mb-4">Generate your first AI portfolio and see it here.</p>
               <button
                 onClick={() => navigate("/generate")}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all"
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all"
                 style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
               >
                 Get Started
@@ -359,47 +274,40 @@ const DashboardPage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentPortfolios.map((p) => (
-                <PortfolioCard
-                  key={p._id}
-                  portfolio={p}
+                <PortfolioCard key={p._id} portfolio={p}
                   onPreview={() => navigate(`/preview/${p._id}`)}
                   onEdit={() => navigate(`/editor/${p._id}`)}
-                  onDelete={() => handleDelete(p._id)}
-                />
+                  onDelete={() => handleDelete(p._id)} />
               ))}
             </div>
           )}
         </div>
 
-        {/* How It Works — stepper */}
+        {/* How It Works */}
         <div className="bg-card rounded-2xl border border-border p-6">
-          <h3 className="font-bold text-foreground text-base mb-6">How AI Portfolio Maker works</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h3 className="font-bold text-foreground text-base mb-5">How AI Portfolio Maker works</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {HOW_IT_WORKS.map((step, i) => (
-              <div key={step.title} className="flex flex-col gap-3">
-                <div className="flex items-center gap-3">
+              <div
+                key={step.title}
+                className="group p-4 rounded-xl border border-border bg-background hover:border-primary/30 hover:shadow-elevated transition-all duration-200 cursor-default"
+              >
+                <div className="flex items-center gap-2 mb-3">
                   <div
-                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105"
                     style={{ background: `${step.color}18`, border: `1px solid ${step.color}33` }}
                   >
                     <step.icon className="w-4 h-4" style={{ color: step.color }} />
                   </div>
-                  {i < HOW_IT_WORKS.length - 1 && (
-                    <div className="flex-1 h-px bg-border hidden lg:block" />
-                  )}
+                  <span
+                    className="w-5 h-5 rounded-full text-[10px] font-extrabold text-white text-center leading-5 shrink-0"
+                    style={{ background: step.color }}
+                  >
+                    {i + 1}
+                  </span>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground mb-0.5">
-                    <span
-                      className="inline-block w-5 h-5 rounded-full text-[10px] font-extrabold text-white text-center leading-5 mr-1.5"
-                      style={{ background: step.color }}
-                    >
-                      {i + 1}
-                    </span>
-                    {step.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
-                </div>
+                <p className="text-xs font-bold text-foreground mb-1">{step.title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{step.desc}</p>
               </div>
             ))}
           </div>

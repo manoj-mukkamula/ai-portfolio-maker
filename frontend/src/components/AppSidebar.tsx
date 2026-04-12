@@ -1,10 +1,10 @@
 // src/components/AppSidebar.tsx
 // Changes:
-//  - Brand name: "AI Portfolio Maker" on a single line
-//  - Dark mode toggle added to sidebar bottom
-//  - "Developed by Manoj" moved here as a footer note (better fit than login page)
-//  - Credits progress bar added
-//  - Active nav item improved styling
+//  - Removed "Developed by Manoj" footer note entirely
+//  - Dark mode toggle only in sidebar (removed from navbar duplication)
+//  - Brand name "AI Portfolio Maker" in single line, single sentence
+//  - Credits progress bar with countdown
+//  - Clean, minimal sidebar
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -94,7 +94,6 @@ const AppSidebar = () => {
 
       {/* Bottom */}
       <div className="mt-auto space-y-3">
-        {/* New Portfolio */}
         <button
           onClick={() => navigate("/generate")}
           className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
@@ -124,7 +123,7 @@ const AppSidebar = () => {
           )}
         </div>
 
-        {/* Dark mode toggle */}
+        {/* Dark mode toggle — only here, not duplicated in navbar */}
         <button
           onClick={toggleTheme}
           className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors w-full"
@@ -143,11 +142,6 @@ const AppSidebar = () => {
         >
           <LogOut className="w-3.5 h-3.5" /> Log out
         </button>
-
-        {/* Footer credit */}
-        <p className="text-[10px] text-muted-foreground/50 text-center pt-1">
-          Developed by <span className="font-semibold text-muted-foreground/70">Manoj</span>
-        </p>
       </div>
     </aside>
   );

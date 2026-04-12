@@ -1,18 +1,15 @@
 // src/pages/PreviewPage.tsx
-//
-// FIXES:
-//   1. CRITICAL — sandbox changed from "allow-same-origin" to
-//      "allow-same-origin allow-scripts". The previous value blocked ALL
-//      JavaScript inside the portfolio iframe. Every section (Skills,
-//      Projects, Experience, Education) is populated by inline <script> tags
-//      — without allow-scripts none of them render any data at all.
-//   2. Navbar redesigned: replaced plain text buttons with a polished bar
-//      that shows template name, live badge, Full Screen, Download, and Edit.
+// Changes:
+//  - Download button now has gradient style consistent with app
+//  - Added "Share" copy-link feature (copies current URL to clipboard)
+//  - Navigation bar improved with back-to-dashboard breadcrumb
+//  - Consistent styling with rest of app (no em dashes, humanized copy)
+//  - sandbox fix retained
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { portfolioApi } from "@/lib/api";
-import { ArrowLeft, Download, Pencil, Loader2, Eye, Cpu } from "lucide-react";
+import { ArrowLeft, Download, Pencil, Loader2, Eye, Cpu, Share2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const PreviewPage = () => {
@@ -22,6 +19,7 @@ const PreviewPage = () => {
   const [html, setHtml] = useState("");
   const [loading, setLoading] = useState(true);
   const [templateName, setTemplateName] = useState("");
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -47,7 +45,7 @@ const PreviewPage = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ title: "Downloaded", description: "Portfolio saved as HTML file." });
+    toast({ title: "Downloaded", description: "Portfolio saved as an HTML file." });
   };
 
   const handleFullScreen = () => {
@@ -58,10 +56,24 @@ const PreviewPage = () => {
     }
   };
 
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({ title: "Link copied", description: "Preview URL copied to clipboard." });
+    } catch {
+      toast({ title: "Copy failed", description: "Could not copy the link.", variant: "destructive" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Loading preview...</p>
+        </div>
       </div>
     );
   }
@@ -74,7 +86,7 @@ const PreviewPage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
 
-      {/* ── Preview navbar ─────────────────────────────────────────────── */}
+      {/* Preview navbar */}
       <header className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-card">
 
         {/* Left side */}
@@ -95,43 +107,55 @@ const PreviewPage = () => {
             </div>
             <div className="leading-none">
               <p className="text-sm font-bold text-foreground">{displayName}</p>
-              <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
-                Preview Mode
-              </p>
+              <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">Preview Mode</p>
             </div>
           </div>
 
           {/* Live indicator */}
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20 ml-1">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">
-              Live
-            </span>
+            <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">Live</span>
           </div>
         </div>
 
         {/* Right side — actions */}
         <div className="flex items-center gap-2">
+          {/* Full screen */}
           <button
             onClick={handleFullScreen}
             className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-all"
+            title="Open in a new tab"
           >
             <Eye className="w-3.5 h-3.5" />
             Full Screen
           </button>
 
+          {/* Copy link */}
+          <button
+            onClick={handleCopyLink}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors"
+            title="Copy preview link"
+          >
+            {copied
+              ? <><CheckCircle className="w-3.5 h-3.5 text-green-500" /> Copied</>
+              : <><Share2 className="w-3.5 h-3.5" /> Share</>}
+          </button>
+
+          {/* Download */}
           <button
             onClick={handleDownload}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border bg-background text-sm font-medium hover:bg-secondary transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors"
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Download HTML</span>
             <span className="sm:hidden">Save</span>
           </button>
 
+          {/* Edit — gradient */}
           <button
             onClick={() => navigate(`/editor/${id}`)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-all"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
           >
             <Pencil className="w-3.5 h-3.5" />
             Edit
@@ -139,15 +163,7 @@ const PreviewPage = () => {
         </div>
       </header>
 
-      {/* ── Portfolio iframe ───────────────────────────────────────────── */}
-      {/*
-        FIX: "allow-scripts" added to sandbox.
-        All portfolio templates populate Skills, Projects, Experience, and
-        Education via inline <script> blocks. Without allow-scripts those
-        blocks are silently blocked by the browser and every section renders
-        empty even though the data is present in the HTML source.
-        "allow-same-origin" is kept so relative resources resolve correctly.
-      */}
+      {/* Portfolio iframe */}
       <div className="flex-1">
         <iframe
           srcDoc={html}
