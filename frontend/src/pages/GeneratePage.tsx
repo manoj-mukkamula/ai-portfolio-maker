@@ -8,112 +8,20 @@ import { portfolioApi } from "@/lib/api";
 import { TEMPLATES } from "@/lib/templates";
 import {
   Upload, FileText, Sparkles, Info, Loader2,
-  CheckCircle, Cpu, ChevronDown, X,
+  CheckCircle, Cpu, ChevronDown, X, Zap,
+  ShieldCheck, Clock, Layers,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// ─── Skeleton shimmer shown in preview panel while generating ───────────────
-const GENERATION_STEPS = [
-  "Parsing your resume...",
-  "Extracting key details...",
-  "Crafting your story...",
-  "Applying design template...",
-  "Finalising your portfolio...",
-];
+const TEMPLATE_META: Record<string, { desc: string; mood: string; bestFor: string }> = {
+  "glass-terminal":   { desc: "Dark terminal aesthetic with neon accents and grid overlays.", mood: "Tech, hacker, developer", bestFor: "Software Engineers, Security" },
+  "brutalist-grid":   { desc: "Raw editorial grid with bold typography and newspaper layout.", mood: "Bold, graphic, editorial", bestFor: "Designers, Creatives" },
+  "aurora-luxury":    { desc: "Gradient-rich dark luxury with frosted glass and elegance.", mood: "Refined, premium, moody", bestFor: "Product, UX, Senior Roles" },
+  "swiss-precision":  { desc: "Clean minimal grid following classic Swiss typography rules.", mood: "Minimal, professional, clean", bestFor: "Consulting, Business, Finance" },
+  "obsidian-code":    { desc: "IDE-inspired dark layout with sidebar and code structure.", mood: "Dev-forward, technical, dark", bestFor: "Full-Stack, Backend Devs" },
+  "kinetic-magazine": { desc: "Split-screen magazine layout with dynamic typographic energy.", mood: "Creative, expressive, editorial", bestFor: "Marketing, Content, Brand" },
+};
 
-function GenerationSkeleton({ templateName }: { templateName: string }) {
-  const [stepIndex, setStepIndex] = useState(0);
-
-  // Cycle through steps every 3.5 seconds
-  useState(() => {
-    const interval = setInterval(() => {
-      setStepIndex((i) => (i + 1) % GENERATION_STEPS.length);
-    }, 3500);
-    return () => clearInterval(interval);
-  });
-
-  return (
-    <div className="flex flex-col h-full bg-background animate-in fade-in duration-500">
-      {/* Mock browser chrome */}
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-card">
-        <span className="w-2 h-2 rounded-full bg-red-400/70" />
-        <span className="w-2 h-2 rounded-full bg-yellow-400/70" />
-        <span className="w-2 h-2 rounded-full bg-green-400/70" />
-        <div className="flex-1 h-4 mx-2 rounded-md bg-secondary animate-pulse" />
-      </div>
-
-      {/* Skeleton body */}
-      <div className="flex-1 overflow-hidden p-3 space-y-2.5">
-        {/* Hero / header skeleton */}
-        <div className="h-16 rounded-lg bg-secondary animate-pulse relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skeleton-shimmer" />
-        </div>
-
-        {/* Nav skeleton */}
-        <div className="flex gap-2">
-          {[40, 56, 48, 44].map((w, i) => (
-            <div key={i} className="h-3 rounded-full bg-secondary animate-pulse" style={{ width: `${w}px`, animationDelay: `${i * 80}ms` }} />
-          ))}
-        </div>
-
-        {/* About section */}
-        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/3" />
-        <div className="space-y-1.5">
-          {[100, 90, 85, 75].map((w, i) => (
-            <div key={i} className="h-2.5 rounded-full bg-secondary animate-pulse" style={{ width: `${w}%`, animationDelay: `${i * 60}ms` }} />
-          ))}
-        </div>
-
-        {/* Skills chips */}
-        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/4 mt-1" />
-        <div className="flex flex-wrap gap-1.5">
-          {[52, 68, 44, 60, 48, 72, 40].map((w, i) => (
-            <div key={i} className="h-5 rounded-full bg-secondary animate-pulse" style={{ width: `${w}px`, animationDelay: `${i * 50}ms` }} />
-          ))}
-        </div>
-
-        {/* Project cards */}
-        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/4 mt-1" />
-        <div className="grid grid-cols-2 gap-2">
-          {[0, 1].map((i) => (
-            <div key={i} className="rounded-lg bg-secondary animate-pulse p-2 space-y-1.5" style={{ animationDelay: `${i * 100}ms` }}>
-              <div className="h-2.5 rounded-full bg-muted-foreground/20 w-3/4" />
-              <div className="h-2 rounded-full bg-muted-foreground/15 w-full" />
-              <div className="h-2 rounded-full bg-muted-foreground/15 w-5/6" />
-            </div>
-          ))}
-        </div>
-
-        {/* Experience block */}
-        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/3 mt-1" />
-        <div className="rounded-lg bg-secondary animate-pulse p-2 space-y-1.5">
-          <div className="h-2.5 rounded-full bg-muted-foreground/20 w-1/2" />
-          <div className="h-2 rounded-full bg-muted-foreground/15 w-full" />
-          <div className="h-2 rounded-full bg-muted-foreground/15 w-4/5" />
-        </div>
-      </div>
-
-      {/* Status footer */}
-      <div className="px-3 py-2.5 border-t border-border bg-card flex items-center gap-2">
-        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
-        <span className="text-xs text-muted-foreground truncate transition-all duration-500">
-          {GENERATION_STEPS[stepIndex]}
-        </span>
-        <div className="ml-auto flex gap-1 shrink-0">
-          {GENERATION_STEPS.map((_, i) => (
-            <span
-              key={i}
-              className="w-1.5 h-1.5 rounded-full transition-all duration-500"
-              style={{ background: i === stepIndex ? "#6366f1" : "#e5e7eb" }}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main GeneratePage ──────────────────────────────────────────────────────
 const GeneratePage = () => {
   const { refreshUser, user } = useAuth();
   const navigate = useNavigate();
@@ -129,6 +37,7 @@ const GeneratePage = () => {
 
   const isSubmitting = useRef(false);
   const selectedTpl = TEMPLATES.find((t) => t.id === selectedTemplate);
+  const selectedMeta = selectedTemplate ? TEMPLATE_META[selectedTemplate] : null;
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -166,6 +75,11 @@ const GeneratePage = () => {
     isSubmitting.current = true;
     setGenerating(true);
 
+    // Navigate to the generating page immediately — skeleton shows while API runs
+    navigate("/generating", {
+      state: { templateId: selectedTemplate },
+    });
+
     try {
       let res;
       if (tab === "upload" && file) {
@@ -179,17 +93,20 @@ const GeneratePage = () => {
       }
       await refreshUser();
       const pid = res.data.portfolio?.id || res.data.portfolio?._id;
-      toast({ title: "Portfolio generated!", description: "Redirecting to preview..." });
-      navigate(`/preview/${pid}`);
+      // Update the generating page with the portfolioId to trigger redirect
+      navigate("/generating", {
+        replace: true,
+        state: { templateId: selectedTemplate, portfolioId: pid },
+      });
     } catch (err: any) {
+      isSubmitting.current = false;
+      setGenerating(false);
+      navigate("/generate", { replace: true });
       toast({
         title: "Generation failed",
         description: err.response?.data?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      isSubmitting.current = false;
-      setGenerating(false);
     }
   };
 
@@ -197,18 +114,22 @@ const GeneratePage = () => {
   const canGenerate = hasInput && !!selectedTemplate && (user?.credits ?? 0) > 0 && !generating;
   const charCount = resumeText.length;
   const charColor =
-    charCount === 0
-      ? "text-muted-foreground"
-      : charCount < 100
-      ? "text-red-500"
-      : charCount < 200
-      ? "text-amber-500"
-      : "text-green-500";
+    charCount === 0 ? "text-muted-foreground"
+    : charCount < 100 ? "text-red-500"
+    : charCount < 200 ? "text-amber-500"
+    : "text-green-500";
+
+  // Readiness checklist
+  const checks = [
+    { label: tab === "upload" ? "Resume file uploaded" : "Resume text provided", done: hasInput },
+    { label: "Template selected", done: !!selectedTemplate },
+    { label: "Credits available", done: (user?.credits ?? 0) > 0 },
+  ];
 
   return (
     <AppLayout>
       <div className="max-w-5xl mx-auto animate-fade-in">
-        {/* Page Header */}
+        {/* Header */}
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-1">
             <Cpu className="w-3.5 h-3.5 text-primary" />
@@ -216,12 +137,12 @@ const GeneratePage = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground mt-0.5">Portfolio Generator</h1>
           <p className="text-muted-foreground mt-1 text-sm max-w-xl">
-            Upload your resume and let Google Gemini AI extract your details and build a professional portfolio website automatically.
+            Upload your resume and let Google Gemini AI extract your details and build a professional portfolio automatically.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          {/* Left column */}
+          {/* ── Left: Input + Templates ── */}
           <div className="lg:col-span-3 space-y-5">
             {/* Tabs */}
             <div className="flex border-b border-border">
@@ -238,7 +159,7 @@ const GeneratePage = () => {
               ))}
             </div>
 
-            {/* Upload or paste */}
+            {/* Upload */}
             {tab === "upload" ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -359,64 +280,110 @@ const GeneratePage = () => {
             </div>
           </div>
 
-          {/* Right column — sticky preview */}
+          {/* ── Right: Info panel ── */}
           <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 lg:self-start">
-            {/* Preview panel */}
-            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-card">
-              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
-                <div className="flex items-center gap-2">
-                  <div className="flex gap-1">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                    <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+
+            {/* Readiness checklist */}
+            <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-border">
+                <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" /> Ready to generate
+                </p>
+              </div>
+              <div className="p-4 space-y-3">
+                {checks.map((c, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div
+                      className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all duration-300"
+                      style={{
+                        background: c.done ? "rgba(34,197,94,0.12)" : "rgba(148,163,184,0.1)",
+                        border: c.done ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(148,163,184,0.2)",
+                      }}
+                    >
+                      {c.done
+                        ? <CheckCircle className="w-3 h-3 text-green-500" />
+                        : <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${c.done ? "text-foreground" : "text-muted-foreground"}`}>
+                      {c.label}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    {generating ? "Generating..." : "Live Preview"}
+                ))}
+                <div className="mt-1 pt-2 border-t border-border">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-muted-foreground">Completion</span>
+                    <span className="text-[10px] font-bold text-primary">
+                      {checks.filter(c => c.done).length} / {checks.length}
+                    </span>
+                  </div>
+                  <div className="w-full h-1 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(checks.filter(c => c.done).length / checks.length) * 100}%`,
+                        background: "linear-gradient(90deg, #6366f1, #22c55e)",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Selected template info */}
+            {selectedMeta ? (
+              <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                  <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-primary" /> {selectedTpl?.name}
+                  </p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase">
+                    {selectedTpl?.style}
                   </span>
                 </div>
-                {selectedTpl && !generating && (
-                  <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    {selectedTpl.name}
-                  </span>
-                )}
-                {generating && (
-                  <span className="text-[10px] font-medium text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full animate-pulse">
-                    AI Working
-                  </span>
-                )}
-              </div>
-
-              {/* Preview content area */}
-              <div className="h-72 overflow-hidden relative">
-                {generating ? (
-                  <GenerationSkeleton templateName={selectedTpl?.name ?? ""} />
-                ) : selectedTpl ? (
-                  <iframe
-                    srcDoc={selectedTpl.template}
-                    title="Template Preview"
-                    className="w-full h-full border-0"
-                    sandbox="allow-same-origin allow-scripts"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full bg-secondary text-center px-6">
-                    <div>
-                      <div className="w-10 h-10 rounded-xl bg-border flex items-center justify-center mx-auto mb-2">
-                        <FileText className="w-5 h-5 text-muted-foreground/40" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">Select a template to preview</p>
-                      <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mt-1">Preview renders here</p>
+                <div className="p-4 space-y-3">
+                  <p className="text-xs text-muted-foreground leading-relaxed">{selectedMeta.desc}</p>
+                  <div className="space-y-1.5">
+                    <div className="flex gap-2">
+                      <span className="text-[10px] text-muted-foreground font-medium w-14 shrink-0">Mood</span>
+                      <span className="text-[10px] text-foreground">{selectedMeta.mood}</span>
+                    </div>
+                    <div className="flex gap-2">
+                      <span className="text-[10px] text-muted-foreground font-medium w-14 shrink-0">Best for</span>
+                      <span className="text-[10px] text-foreground">{selectedMeta.bestFor}</span>
                     </div>
                   </div>
-                )}
-              </div>
-
-              {file && !generating && (
-                <div className="px-4 py-2 border-t border-border flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  <span className="text-xs text-muted-foreground truncate">Ready: {file.name}</span>
+                  {/* Mini thumbnail */}
+                  <div className="h-32 rounded-lg overflow-hidden border border-border bg-secondary relative mt-1">
+                    <iframe
+                      srcDoc={selectedTpl!.template}
+                      title={selectedTpl!.name}
+                      className="w-full h-full border-0 pointer-events-none"
+                      sandbox="allow-same-origin allow-scripts"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
+                    <div className="absolute bottom-2 left-2 right-2">
+                      <div className="text-[9px] font-bold text-white/80 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md w-fit">
+                        Live preview
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
+                <div className="px-4 py-3 border-b border-border">
+                  <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-muted-foreground" /> Template Preview
+                  </p>
+                </div>
+                <div className="p-6 flex flex-col items-center text-center gap-2">
+                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-muted-foreground/40" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Select a template to see its details and preview</p>
+                </div>
+              </div>
+            )}
 
             {/* AI Tip */}
             <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
@@ -431,10 +398,14 @@ const GeneratePage = () => {
                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${tipOpen ? "rotate-180" : ""}`} />
               </button>
               {tipOpen && (
-                <div className="px-4 pb-3">
+                <div className="px-4 pb-3 space-y-2">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Include your name, email, skills, education, and projects for the best results. The more detail you provide, the richer your portfolio will be.
+                    Include your name, email, skills, education, and projects for the best results. The more context you give Gemini, the richer your portfolio will be.
                   </p>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <p className="text-[11px] text-muted-foreground">Average generation time: 15 to 25 seconds</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -450,12 +421,12 @@ const GeneratePage = () => {
           </div>
         </div>
 
-        {/* Generate button — ALWAYS VISIBLE, state changes only */}
+        {/* Generate button row */}
         <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2">
             <Info className="w-4 h-4 text-primary" />
             <span className="text-muted-foreground text-sm">Cost per generation:</span>
-            <span className="text-primary font-semibold">1 Credit</span>
+            <span className="text-primary font-semibold text-sm">1 Credit</span>
             <span className="text-muted-foreground text-sm hidden sm:inline">
               ({user?.credits ?? 0} remaining)
             </span>
@@ -463,43 +434,26 @@ const GeneratePage = () => {
 
           <button
             onClick={handleGenerate}
-            disabled={generating || !canGenerate}
+            disabled={!canGenerate}
             className="px-7 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98]"
             style={{
               background: canGenerate
                 ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
-                : "var(--color-secondary, #e5e7eb)",
-              color: canGenerate ? "#fff" : "var(--color-muted-foreground, #6b7280)",
-              boxShadow: canGenerate ? "0 4px 20px rgba(99,102,241,0.35)" : "none",
-              opacity: generating ? 0.8 : 1,
-              cursor: generating || !canGenerate ? "not-allowed" : "pointer",
+                : undefined,
+              color: canGenerate ? "#fff" : undefined,
+              boxShadow: canGenerate ? "0 4px 20px rgba(99,102,241,0.35)" : undefined,
+              opacity: canGenerate ? 1 : 0.45,
+              cursor: canGenerate ? "pointer" : "not-allowed",
             }}
           >
             {generating ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Generating...
-              </>
+              <><Loader2 className="w-4 h-4 animate-spin" /> Starting...</>
             ) : (
-              <>
-                <Sparkles className="w-4 h-4" />
-                Generate Portfolio
-              </>
+              <><Sparkles className="w-4 h-4" /> Generate Portfolio</>
             )}
           </button>
         </div>
       </div>
-
-      {/* Shimmer keyframes */}
-      <style>{`
-        @keyframes skeleton-shimmer {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-        .skeleton-shimmer {
-          animation: skeleton-shimmer 1.6s ease-in-out infinite;
-        }
-      `}</style>
     </AppLayout>
   );
 };

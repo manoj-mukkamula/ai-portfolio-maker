@@ -1,6 +1,4 @@
 // src/App.tsx
-// Added ThemeProvider wrapping everything so dark mode works across all pages.
-// Auth pages excluded from dark mode (they have their own fixed dark background).
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -15,6 +13,7 @@ import SplashScreen from "@/components/SplashScreen";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import GeneratePage from "./pages/GeneratePage";
+import GeneratingPage from "./pages/GeneratingPage";
 import HistoryPage from "./pages/HistoryPage";
 import PreviewPage from "./pages/PreviewPage";
 import EditorPage from "./pages/EditorPage";
@@ -48,6 +47,7 @@ const App = () => {
                 <Route path="/register" element={<AuthPage />} />
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/generate"  element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
+                <Route path="/generating" element={<ProtectedRoute><GeneratingPage /></ProtectedRoute>} />
                 <Route path="/history"   element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
                 <Route path="/preview/:id" element={<ProtectedRoute><PreviewPage /></ProtectedRoute>} />
                 <Route path="/editor/:id"  element={<ProtectedRoute><EditorPage /></ProtectedRoute>} />

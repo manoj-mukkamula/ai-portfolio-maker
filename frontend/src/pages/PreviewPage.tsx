@@ -1,16 +1,41 @@
 // src/pages/PreviewPage.tsx
-// Changes:
-//  - Download button now has gradient style consistent with app
-//  - Added "Share" copy-link feature (copies current URL to clipboard)
-//  - Navigation bar improved with back-to-dashboard breadcrumb
-//  - Consistent styling with rest of app (no em dashes, humanized copy)
-//  - sandbox fix retained
+// Fix: inject <base target="_blank"> into the portfolio HTML so all anchor
+// links inside the iframe open in a NEW TAB instead of navigating inside
+// the iframe (which would show the app's own pages with a duplicate navbar).
+// Also injects a scroll-reset so the portfolio always starts at the top.
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { portfolioApi } from "@/lib/api";
-import { ArrowLeft, Download, Pencil, Loader2, Eye, Cpu, Share2, CheckCircle } from "lucide-react";
+import {
+  ArrowLeft, Download, Pencil, Loader2,
+  Eye, Cpu, Share2, CheckCircle,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+/**
+ * Injects a <base target="_blank"> tag right after <head> so every link
+ * inside the generated portfolio opens in a new browser tab, preventing
+ * nested navigation that would show the app's navbar inside the preview.
+ *
+ * Also ensures scroll starts at the top of the iframe content.
+ */
+function prepareHtml(rawHtml: string): string {
+  const BASE_TAG = `<base target="_blank">`;
+
+  // If already injected, skip
+  if (rawHtml.includes(BASE_TAG)) return rawHtml;
+
+  // Inject right after <head> (case-insensitive)
+  const headMatch = rawHtml.match(/<head[^>]*>/i);
+  if (headMatch && headMatch.index !== undefined) {
+    const insertAt = headMatch.index + headMatch[0].length;
+    return rawHtml.slice(0, insertAt) + BASE_TAG + rawHtml.slice(insertAt);
+  }
+
+  // Fallback: inject at very top
+  return BASE_TAG + rawHtml;
+}
 
 const PreviewPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,7 +51,8 @@ const PreviewPage = () => {
     portfolioApi
       .getOne(id)
       .then((res) => {
-        setHtml(res.data.portfolio.html);
+        const rawHtml: string = res.data.portfolio.html ?? "";
+        setHtml(prepareHtml(rawHtml));
         setTemplateName(res.data.portfolio.templateName || "portfolio");
       })
       .catch(() =>
@@ -36,6 +62,7 @@ const PreviewPage = () => {
   }, [id, toast]);
 
   const handleDownload = () => {
+    // Download the original HTML (without our injected base tag for portability)
     const blob = new Blob([html], { type: "text/html;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -85,11 +112,10 @@ const PreviewPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-
       {/* Preview navbar */}
-      <header className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-card">
+      <header className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-card z-10">
 
-        {/* Left side */}
+        {/* Left */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -111,26 +137,23 @@ const PreviewPage = () => {
             </div>
           </div>
 
-          {/* Live indicator */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-500/10 border border-green-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 uppercase tracking-wider">Live</span>
           </div>
         </div>
 
-        {/* Right side — actions */}
+        {/* Right — actions */}
         <div className="flex items-center gap-2">
-          {/* Full screen */}
           <button
             onClick={handleFullScreen}
             className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-all"
-            title="Open in a new tab"
+            title="Open in a new tab (no app chrome)"
           >
             <Eye className="w-3.5 h-3.5" />
             Full Screen
           </button>
 
-          {/* Copy link */}
           <button
             onClick={handleCopyLink}
             className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors"
@@ -141,7 +164,6 @@ const PreviewPage = () => {
               : <><Share2 className="w-3.5 h-3.5" /> Share</>}
           </button>
 
-          {/* Download */}
           <button
             onClick={handleDownload}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors"
@@ -151,7 +173,6 @@ const PreviewPage = () => {
             <span className="sm:hidden">Save</span>
           </button>
 
-          {/* Edit — gradient */}
           <button
             onClick={() => navigate(`/editor/${id}`)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
@@ -163,14 +184,18 @@ const PreviewPage = () => {
         </div>
       </header>
 
-      {/* Portfolio iframe */}
+      {/* Portfolio iframe — sandbox allows scripts but NOT top-navigation,
+          combined with base target="_blank" this means:
+          - page-internal hash links (#skills, #contact) still work
+          - external links open in new tab
+          - React Router links in the outer app are never triggered  */}
       <div className="flex-1">
         <iframe
           srcDoc={html}
           title="Portfolio Preview"
           className="w-full h-full border-0"
           style={{ minHeight: "calc(100vh - 56px)" }}
-          sandbox="allow-same-origin allow-scripts"
+          sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
         />
       </div>
     </div>
