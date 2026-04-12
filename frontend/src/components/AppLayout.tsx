@@ -1,10 +1,6 @@
 // src/components/AppLayout.tsx
-// Changes:
-//  - Removed dark mode toggle from top navbar (it lives in the sidebar — no duplication)
-//  - Mobile menu now includes a dark mode toggle (since sidebar is hidden on mobile)
-//  - Profile dropdown copy humanized, no em dashes
-//  - Brand name on mobile: "AI Portfolio Maker" as a single line
-//  - Consistent gradient/style with rest of app
+// Dark mode toggle moved to navbar (top right, next to profile).
+// Mobile menu retains its own toggle since sidebar is hidden.
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -28,8 +24,10 @@ const MobileMenu = ({ onClose }: { onClose: () => void }) => {
     <div className="fixed inset-0 z-50 bg-card/98 backdrop-blur-sm flex flex-col lg:hidden">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
+          <div
+            className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+          >
             <BrainCircuit className="w-3.5 h-3.5 text-white" />
           </div>
           <span className="font-bold text-foreground text-sm">AI Portfolio Maker</span>
@@ -55,7 +53,6 @@ const MobileMenu = ({ onClose }: { onClose: () => void }) => {
         ))}
       </nav>
       <div className="p-4 border-t border-border space-y-2">
-        {/* Dark mode toggle in mobile menu — since sidebar is hidden on mobile */}
         <button
           onClick={toggleTheme}
           className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-base font-medium text-foreground hover:bg-secondary transition-colors w-full"
@@ -113,7 +110,6 @@ const ProfileDropdown = () => {
 
       {open && (
         <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border bg-card shadow-modal z-50 overflow-hidden">
-          {/* User info */}
           <div className="px-4 py-3.5 border-b border-border">
             <div className="flex items-center gap-3">
               <div
@@ -129,7 +125,6 @@ const ProfileDropdown = () => {
             </div>
           </div>
 
-          {/* Credits */}
           <div className="px-4 py-3 border-b border-border">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground font-medium">Credits remaining</span>
@@ -170,6 +165,7 @@ const ProfileDropdown = () => {
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const credits = user?.credits ?? 0;
@@ -194,7 +190,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             <Menu className="w-5 h-5 text-foreground" />
           </button>
 
-          {/* Brand on mobile only */}
+          {/* Brand on mobile */}
           <span className="lg:hidden text-sm font-bold text-foreground">AI Portfolio Maker</span>
 
           <div className="flex items-center gap-2 ml-auto">
@@ -207,8 +203,18 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               {credits} Credit{credits !== 1 ? "s" : ""}
             </div>
 
-            {/* Dark mode toggle removed from here — lives in sidebar.
-                Mobile users get it inside the hamburger menu. */}
+            {/* Dark mode toggle in navbar — desktop visible */}
+            <button
+              onClick={toggleTheme}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              className="p-2 rounded-xl border border-border hover:bg-secondary transition-colors hidden sm:flex items-center justify-center"
+            >
+              {theme === "dark" ? (
+                <Sun className="w-4 h-4 text-amber-400" />
+              ) : (
+                <Moon className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
 
             {/* Profile dropdown */}
             <ProfileDropdown />

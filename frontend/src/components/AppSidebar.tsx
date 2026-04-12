@@ -1,18 +1,10 @@
 // src/components/AppSidebar.tsx
-// Changes:
-//  - Removed "Developed by Manoj" footer note entirely
-//  - Dark mode toggle only in sidebar (removed from navbar duplication)
-//  - Brand name "AI Portfolio Maker" in single line, single sentence
-//  - Credits progress bar with countdown
-//  - Clean, minimal sidebar
+// Dark mode toggle removed from sidebar — it now lives in the navbar.
+// Sidebar is kept clean: nav links, New Portfolio button, credits, logout.
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
-import {
-  LayoutGrid, Sparkles, History, Plus, LogOut,
-  Zap, Sun, Moon, BrainCircuit,
-} from "lucide-react";
+import { LayoutGrid, Sparkles, History, Plus, LogOut, Zap, BrainCircuit } from "lucide-react";
 
 const navItems = [
   { icon: LayoutGrid, label: "Dashboard", path: "/dashboard" },
@@ -35,13 +27,10 @@ const AppSidebar = () => {
   const location = useLocation();
   const navigate  = useNavigate();
   const { logout, user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
 
   const credits = user?.credits ?? 0;
-  const creditBarColor =
-    credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "#6366f1";
-  const creditTextColor =
-    credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-primary";
+  const creditBarColor = credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "#6366f1";
+  const creditTextColor = credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-primary";
 
   const handleLogout = () => {
     logout();
@@ -66,7 +55,7 @@ const AppSidebar = () => {
         </div>
       </Link>
 
-      {/* Nav */}
+      {/* Nav links */}
       <nav className="flex-1 flex flex-col gap-0.5">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -79,11 +68,7 @@ const AppSidebar = () => {
                   ? "text-white"
                   : "text-muted-foreground hover:text-foreground hover:bg-secondary"
               }`}
-              style={
-                isActive
-                  ? { background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }
-                  : {}
-              }
+              style={isActive ? { background: "linear-gradient(135deg, #6366f1, #8b5cf6)" } : {}}
             >
               <item.icon className="w-4 h-4 shrink-0" />
               {item.label}
@@ -92,7 +77,7 @@ const AppSidebar = () => {
         })}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom section */}
       <div className="mt-auto space-y-3">
         <button
           onClick={() => navigate("/generate")}
@@ -103,7 +88,7 @@ const AppSidebar = () => {
           New Portfolio
         </button>
 
-        {/* Credits card */}
+        {/* Credits */}
         <div className="px-3 py-3 rounded-xl bg-secondary/60 border border-border">
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-1.5">
@@ -122,18 +107,6 @@ const AppSidebar = () => {
             <p className="text-[10px] text-muted-foreground">{getResetCountdown(user.creditsLastReset)}</p>
           )}
         </div>
-
-        {/* Dark mode toggle — only here, not duplicated in navbar */}
-        <button
-          onClick={toggleTheme}
-          className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors w-full"
-        >
-          {theme === "dark" ? (
-            <><Sun className="w-3.5 h-3.5 text-amber-400" /> Light mode</>
-          ) : (
-            <><Moon className="w-3.5 h-3.5" /> Dark mode</>
-          )}
-        </button>
 
         {/* Logout */}
         <button

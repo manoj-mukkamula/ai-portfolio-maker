@@ -1,14 +1,4 @@
 // src/pages/GeneratePage.tsx
-// Changes:
-//  - Drag & drop zone: gradient border, hover glow, icon animation on hover
-//  - Upload success state: better visual with file info
-//  - Template cards: hover scale + glow + selected border highlight
-//  - Premium badge: cleaner styling
-//  - Live Preview panel: sticky, shows actual template when selected, loading skeleton
-//  - Paste text area: improved placeholder, color-coded character counter
-//  - Generate button: disabled until file/template selected, gradient style
-//  - AI Tip: lighter, collapsible feel
-//  - All copy humanized, no em dashes
 
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,9 +6,114 @@ import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import { portfolioApi } from "@/lib/api";
 import { TEMPLATES } from "@/lib/templates";
-import { Upload, FileText, Sparkles, Info, Loader2, CheckCircle, Cpu, ChevronDown, X } from "lucide-react";
+import {
+  Upload, FileText, Sparkles, Info, Loader2,
+  CheckCircle, Cpu, ChevronDown, X,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// ─── Skeleton shimmer shown in preview panel while generating ───────────────
+const GENERATION_STEPS = [
+  "Parsing your resume...",
+  "Extracting key details...",
+  "Crafting your story...",
+  "Applying design template...",
+  "Finalising your portfolio...",
+];
+
+function GenerationSkeleton({ templateName }: { templateName: string }) {
+  const [stepIndex, setStepIndex] = useState(0);
+
+  // Cycle through steps every 3.5 seconds
+  useState(() => {
+    const interval = setInterval(() => {
+      setStepIndex((i) => (i + 1) % GENERATION_STEPS.length);
+    }, 3500);
+    return () => clearInterval(interval);
+  });
+
+  return (
+    <div className="flex flex-col h-full bg-background animate-in fade-in duration-500">
+      {/* Mock browser chrome */}
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-card">
+        <span className="w-2 h-2 rounded-full bg-red-400/70" />
+        <span className="w-2 h-2 rounded-full bg-yellow-400/70" />
+        <span className="w-2 h-2 rounded-full bg-green-400/70" />
+        <div className="flex-1 h-4 mx-2 rounded-md bg-secondary animate-pulse" />
+      </div>
+
+      {/* Skeleton body */}
+      <div className="flex-1 overflow-hidden p-3 space-y-2.5">
+        {/* Hero / header skeleton */}
+        <div className="h-16 rounded-lg bg-secondary animate-pulse relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skeleton-shimmer" />
+        </div>
+
+        {/* Nav skeleton */}
+        <div className="flex gap-2">
+          {[40, 56, 48, 44].map((w, i) => (
+            <div key={i} className="h-3 rounded-full bg-secondary animate-pulse" style={{ width: `${w}px`, animationDelay: `${i * 80}ms` }} />
+          ))}
+        </div>
+
+        {/* About section */}
+        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/3" />
+        <div className="space-y-1.5">
+          {[100, 90, 85, 75].map((w, i) => (
+            <div key={i} className="h-2.5 rounded-full bg-secondary animate-pulse" style={{ width: `${w}%`, animationDelay: `${i * 60}ms` }} />
+          ))}
+        </div>
+
+        {/* Skills chips */}
+        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/4 mt-1" />
+        <div className="flex flex-wrap gap-1.5">
+          {[52, 68, 44, 60, 48, 72, 40].map((w, i) => (
+            <div key={i} className="h-5 rounded-full bg-secondary animate-pulse" style={{ width: `${w}px`, animationDelay: `${i * 50}ms` }} />
+          ))}
+        </div>
+
+        {/* Project cards */}
+        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/4 mt-1" />
+        <div className="grid grid-cols-2 gap-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="rounded-lg bg-secondary animate-pulse p-2 space-y-1.5" style={{ animationDelay: `${i * 100}ms` }}>
+              <div className="h-2.5 rounded-full bg-muted-foreground/20 w-3/4" />
+              <div className="h-2 rounded-full bg-muted-foreground/15 w-full" />
+              <div className="h-2 rounded-full bg-muted-foreground/15 w-5/6" />
+            </div>
+          ))}
+        </div>
+
+        {/* Experience block */}
+        <div className="h-3 rounded-full bg-secondary animate-pulse w-1/3 mt-1" />
+        <div className="rounded-lg bg-secondary animate-pulse p-2 space-y-1.5">
+          <div className="h-2.5 rounded-full bg-muted-foreground/20 w-1/2" />
+          <div className="h-2 rounded-full bg-muted-foreground/15 w-full" />
+          <div className="h-2 rounded-full bg-muted-foreground/15 w-4/5" />
+        </div>
+      </div>
+
+      {/* Status footer */}
+      <div className="px-3 py-2.5 border-t border-border bg-card flex items-center gap-2">
+        <Loader2 className="w-3.5 h-3.5 text-primary animate-spin shrink-0" />
+        <span className="text-xs text-muted-foreground truncate transition-all duration-500">
+          {GENERATION_STEPS[stepIndex]}
+        </span>
+        <div className="ml-auto flex gap-1 shrink-0">
+          {GENERATION_STEPS.map((_, i) => (
+            <span
+              key={i}
+              className="w-1.5 h-1.5 rounded-full transition-all duration-500"
+              style={{ background: i === stepIndex ? "#6366f1" : "#e5e7eb" }}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main GeneratePage ──────────────────────────────────────────────────────
 const GeneratePage = () => {
   const { refreshUser, user } = useAuth();
   const navigate = useNavigate();
@@ -87,7 +182,11 @@ const GeneratePage = () => {
       toast({ title: "Portfolio generated!", description: "Redirecting to preview..." });
       navigate(`/preview/${pid}`);
     } catch (err: any) {
-      toast({ title: "Generation failed", description: err.response?.data?.message || "Something went wrong. Please try again.", variant: "destructive" });
+      toast({
+        title: "Generation failed",
+        description: err.response?.data?.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       isSubmitting.current = false;
       setGenerating(false);
@@ -95,9 +194,16 @@ const GeneratePage = () => {
   };
 
   const hasInput = tab === "upload" ? !!file : resumeText.trim().length > 0;
-  const canGenerate = hasInput && !!selectedTemplate && (user?.credits ?? 0) > 0;
+  const canGenerate = hasInput && !!selectedTemplate && (user?.credits ?? 0) > 0 && !generating;
   const charCount = resumeText.length;
-  const charColor = charCount === 0 ? "text-muted-foreground" : charCount < 100 ? "text-red-500" : charCount < 200 ? "text-amber-500" : "text-green-500";
+  const charColor =
+    charCount === 0
+      ? "text-muted-foreground"
+      : charCount < 100
+      ? "text-red-500"
+      : charCount < 200
+      ? "text-amber-500"
+      : "text-green-500";
 
   return (
     <AppLayout>
@@ -115,21 +221,24 @@ const GeneratePage = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          {/* Left: Input + Templates */}
+          {/* Left column */}
           <div className="lg:col-span-3 space-y-5">
-            {/* Input tabs */}
+            {/* Tabs */}
             <div className="flex border-b border-border">
               {(["upload", "paste"] as const).map((t) => (
-                <button key={t} onClick={() => setTab(t)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors capitalize ${
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-4 py-2.5 text-sm font-medium transition-colors ${
                     tab === t ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
-                  }`}>
+                  }`}
+                >
                   {t === "upload" ? "Upload File" : "Paste Text"}
                 </button>
               ))}
             </div>
 
-            {/* File upload area */}
+            {/* Upload or paste */}
             {tab === "upload" ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -150,23 +259,31 @@ const GeneratePage = () => {
                     </div>
                     <p className="font-semibold text-foreground text-sm">{file.name}</p>
                     <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
-                    <button onClick={() => setFile(null)}
-                      className="flex items-center gap-1 text-xs text-destructive hover:underline mt-1">
+                    <button
+                      onClick={() => setFile(null)}
+                      className="flex items-center gap-1 text-xs text-destructive hover:underline mt-1"
+                    >
                       <X className="w-3 h-3" /> Remove file
                     </button>
                   </div>
                 ) : (
                   <>
-                    <div className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center transition-all duration-200 ${dragOver ? "scale-110" : ""}`}
-                      style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))", border: "1px solid rgba(99,102,241,0.2)" }}>
+                    <div
+                      className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center transition-all duration-200 ${dragOver ? "scale-110" : ""}`}
+                      style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))", border: "1px solid rgba(99,102,241,0.2)" }}
+                    >
                       <Upload className={`w-5 h-5 text-primary transition-transform duration-200 ${dragOver ? "scale-110" : ""}`} />
                     </div>
                     <p className="font-semibold text-foreground text-sm">Drag and drop your resume here</p>
                     <p className="text-xs text-muted-foreground mt-1 mb-4">PDF or DOCX format, max 5MB</p>
                     <label className="inline-flex items-center px-4 py-2 rounded-lg border border-border text-sm font-medium cursor-pointer hover:bg-secondary hover:border-primary/30 transition-all">
                       Select File
-                      <input type="file" accept=".pdf,.docx" className="hidden"
-                        onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }} />
+                      <input
+                        type="file"
+                        accept=".pdf,.docx"
+                        className="hidden"
+                        onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }}
+                      />
                     </label>
                   </>
                 )}
@@ -213,7 +330,7 @@ const GeneratePage = () => {
                       <iframe
                         srcDoc={tpl.template}
                         title={tpl.name}
-                        className={`w-full h-full border-0 pointer-events-none transition-transform duration-200 ${selectedTemplate === tpl.id ? "" : "group-hover:scale-105"}`}
+                        className="w-full h-full border-0 pointer-events-none"
                         style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%", height: "250%" }}
                         sandbox="allow-same-origin allow-scripts"
                       />
@@ -242,9 +359,9 @@ const GeneratePage = () => {
             </div>
           </div>
 
-          {/* Right: Live Preview + AI Tip (sticky) */}
+          {/* Right column — sticky preview */}
           <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 lg:self-start">
-            {/* Live preview panel */}
+            {/* Preview panel */}
             <div className="bg-card rounded-xl border border-border overflow-hidden shadow-card">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                 <div className="flex items-center gap-2">
@@ -253,16 +370,27 @@ const GeneratePage = () => {
                     <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
                     <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
                   </div>
-                  <span className="text-xs text-muted-foreground">Live Preview</span>
+                  <span className="text-xs text-muted-foreground">
+                    {generating ? "Generating..." : "Live Preview"}
+                  </span>
                 </div>
-                {selectedTpl && (
+                {selectedTpl && !generating && (
                   <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     {selectedTpl.name}
                   </span>
                 )}
+                {generating && (
+                  <span className="text-[10px] font-medium text-amber-500 bg-amber-500/10 px-2 py-0.5 rounded-full animate-pulse">
+                    AI Working
+                  </span>
+                )}
               </div>
-              <div className="h-72 flex items-center justify-center bg-secondary overflow-hidden relative">
-                {selectedTpl ? (
+
+              {/* Preview content area */}
+              <div className="h-72 overflow-hidden relative">
+                {generating ? (
+                  <GenerationSkeleton templateName={selectedTpl?.name ?? ""} />
+                ) : selectedTpl ? (
                   <iframe
                     srcDoc={selectedTpl.template}
                     title="Template Preview"
@@ -270,16 +398,19 @@ const GeneratePage = () => {
                     sandbox="allow-same-origin allow-scripts"
                   />
                 ) : (
-                  <div className="text-center px-6">
-                    <div className="w-10 h-10 rounded-xl bg-border flex items-center justify-center mx-auto mb-2">
-                      <FileText className="w-5 h-5 text-muted-foreground/40" />
+                  <div className="flex items-center justify-center h-full bg-secondary text-center px-6">
+                    <div>
+                      <div className="w-10 h-10 rounded-xl bg-border flex items-center justify-center mx-auto mb-2">
+                        <FileText className="w-5 h-5 text-muted-foreground/40" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">Select a template to preview</p>
+                      <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mt-1">Preview renders here</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">Select a template to preview</p>
-                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mt-1">Preview renders here</p>
                   </div>
                 )}
               </div>
-              {file && (
+
+              {file && !generating && (
                 <div className="px-4 py-2 border-t border-border flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
                   <span className="text-xs text-muted-foreground truncate">Ready: {file.name}</span>
@@ -287,7 +418,7 @@ const GeneratePage = () => {
               )}
             </div>
 
-            {/* AI Tip — collapsible */}
+            {/* AI Tip */}
             <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
               <button
                 onClick={() => setTipOpen(!tipOpen)}
@@ -302,8 +433,7 @@ const GeneratePage = () => {
               {tipOpen && (
                 <div className="px-4 pb-3">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Include your name, email, skills, education, and projects for the best results.
-                    The more detail you provide, the richer your portfolio will be.
+                    Include your name, email, skills, education, and projects for the best results. The more detail you provide, the richer your portfolio will be.
                   </p>
                 </div>
               )}
@@ -320,34 +450,56 @@ const GeneratePage = () => {
           </div>
         </div>
 
-        {/* Generate Button row */}
+        {/* Generate button — ALWAYS VISIBLE, state changes only */}
         <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
           <div className="flex items-center gap-2 text-sm">
             <Info className="w-4 h-4 text-primary" />
             <span className="text-muted-foreground text-sm">Cost per generation:</span>
             <span className="text-primary font-semibold">1 Credit</span>
-            <span className="text-muted-foreground text-sm hidden sm:inline">({user?.credits ?? 0} remaining)</span>
+            <span className="text-muted-foreground text-sm hidden sm:inline">
+              ({user?.credits ?? 0} remaining)
+            </span>
           </div>
+
           <button
             onClick={handleGenerate}
             disabled={generating || !canGenerate}
-            className="px-7 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+            className="px-7 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98]"
             style={{
-              background: canGenerate && !generating
+              background: canGenerate
                 ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
-                : undefined,
-              color: "#fff",
-              boxShadow: canGenerate && !generating ? "0 4px 20px rgba(99,102,241,0.35)" : undefined,
+                : "var(--color-secondary, #e5e7eb)",
+              color: canGenerate ? "#fff" : "var(--color-muted-foreground, #6b7280)",
+              boxShadow: canGenerate ? "0 4px 20px rgba(99,102,241,0.35)" : "none",
+              opacity: generating ? 0.8 : 1,
+              cursor: generating || !canGenerate ? "not-allowed" : "pointer",
             }}
           >
             {generating ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Generating with AI...</>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating...
+              </>
             ) : (
-              <><Sparkles className="w-4 h-4" /> Generate Portfolio</>
+              <>
+                <Sparkles className="w-4 h-4" />
+                Generate Portfolio
+              </>
             )}
           </button>
         </div>
       </div>
+
+      {/* Shimmer keyframes */}
+      <style>{`
+        @keyframes skeleton-shimmer {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        .skeleton-shimmer {
+          animation: skeleton-shimmer 1.6s ease-in-out infinite;
+        }
+      `}</style>
     </AppLayout>
   );
 };
