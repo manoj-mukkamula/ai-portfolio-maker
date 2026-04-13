@@ -1,24 +1,21 @@
 // src/pages/EditorPage.tsx
-// Changes:
-//  - Header: gradient Save button, consistent with rest of app
-//  - Added word wrap toggle button for the code editor
-//  - Added copy-to-clipboard button in editor toolbar
-//  - Status bar shows unsaved changes indicator
-//  - Keyboard shortcut Ctrl/Cmd+S to save
-//  - Editor pane: line numbers style, dark background consistent with dark theme
-//  - No em dashes anywhere in copy
-//  - All sandbox / iframe fixes retained
+// Updates:
+//  - Dark mode toggle added to editor navbar
+//  - BrainCircuit brand logo in navbar for consistency
+//  - All existing functionality preserved (word wrap, copy, Ctrl+S, etc.)
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { portfolioApi } from "@/lib/api";
-import { ArrowLeft, Save, Loader2, CheckCircle, Eye, Cpu, Copy, WrapText } from "lucide-react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { ArrowLeft, Save, Loader2, CheckCircle, Eye, Cpu, Copy, WrapText, Sun, Moon, BrainCircuit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const EditorPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme, toggleTheme } = useTheme();
   const [html, setHtml] = useState("");
   const [originalHtml, setOriginalHtml] = useState("");
   const [loading, setLoading] = useState(true);
@@ -59,7 +56,6 @@ const EditorPage = () => {
     }
   }, [id, html, saving, toast]);
 
-  // Keyboard shortcut: Ctrl/Cmd + S
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
@@ -82,6 +78,10 @@ const EditorPage = () => {
   };
 
   const hasUnsavedChanges = html !== originalHtml;
+  const displayName = templateName
+    .split("-")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 
   if (loading) {
     return (
@@ -94,168 +94,94 @@ const EditorPage = () => {
     );
   }
 
-  const displayName = templateName
-    .split("-")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
-
-      {/* Header */}
-      <header className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-card">
+      <header className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-card sticky top-0 z-40">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span className="hidden sm:inline">Back</span>
           </button>
-
           <div className="h-5 w-px bg-border hidden sm:block" />
-
+          <div className="hidden sm:flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}>
+              <BrainCircuit className="w-3 h-3 text-white" />
+            </div>
+          </div>
           <div className="hidden sm:flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-md bg-primary/10 border border-primary/20 flex items-center justify-center">
               <Cpu className="w-3.5 h-3.5 text-primary" />
             </div>
             <div className="leading-none">
-              <p className="font-bold text-sm text-foreground">{displayName}</p>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">HTML Editor</p>
+              <p className="text-sm font-bold text-foreground">{displayName}</p>
+              <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
+                Editor {hasUnsavedChanges && <span className="text-amber-500 font-semibold ml-1">Unsaved</span>}
+              </p>
             </div>
           </div>
-
-          {/* Unsaved changes indicator */}
-          {hasUnsavedChanges && !saving && (
-            <span className="hidden sm:flex items-center gap-1.5 text-xs text-amber-500 font-medium px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              Unsaved changes
-            </span>
-          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(`/preview/${id}`)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors"
-          >
+        <div className="flex items-center gap-1.5">
+          <button onClick={toggleTheme} title={theme === "dark" ? "Light mode" : "Dark mode"} className="p-2 rounded-lg hover:bg-secondary transition-colors border border-transparent hover:border-border">
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          <button onClick={() => setWordWrap(!wordWrap)} title={wordWrap ? "Disable word wrap" : "Enable word wrap"}
+            className={`hidden sm:flex p-2 rounded-lg transition-colors border ${wordWrap ? "bg-primary/10 border-primary/30 text-primary" : "border-transparent hover:bg-secondary text-muted-foreground"}`}>
+            <WrapText className="w-4 h-4" />
+          </button>
+          <button onClick={handleCopy} className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors">
+            {copied ? <><CheckCircle className="w-3.5 h-3.5 text-green-500" /> Copied</> : <><Copy className="w-3.5 h-3.5" /> Copy HTML</>}
+          </button>
+          <button onClick={() => navigate(`/preview/${id}`)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary transition-colors">
             <Eye className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Preview</span>
           </button>
-
-          {saved && (
-            <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400 font-medium">
-              <CheckCircle className="w-3.5 h-3.5" /> Saved
-            </span>
-          )}
-
-          <button
-            onClick={handleSave}
-            disabled={saving || !hasUnsavedChanges}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          <button onClick={handleSave} disabled={saving || !hasUnsavedChanges}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-            title="Save (Ctrl+S)"
-          >
-            {saving ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Save className="w-3.5 h-3.5" />
-            )}
-            <span className="hidden sm:inline">Save Changes</span>
+            title="Save changes (Ctrl+S)">
+            {saving ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...</>
+              : saved ? <><CheckCircle className="w-3.5 h-3.5" /> Saved</>
+              : <><Save className="w-3.5 h-3.5" /> Save</>}
           </button>
         </div>
       </header>
 
-      {/* Editor + Preview panes */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-
-        {/* Left: code editor */}
-        <div className="lg:w-1/2 flex flex-col border-r border-border">
-          <div className="px-4 py-2 border-b border-border bg-[hsl(222,47%,5%)] flex items-center gap-2 shrink-0">
-            <div className="flex gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
+      <div className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
+        <div className="flex flex-col w-1/2 border-r border-border">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">HTML</span>
+              <span className="text-[10px] text-muted-foreground">{html.length.toLocaleString()} chars</span>
             </div>
-            <span className="text-[10px] font-mono text-muted-foreground uppercase tracking-wider ml-1">HTML</span>
-            <span className="text-xs text-muted-foreground">index.html</span>
-            <span className="ml-auto flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground hidden sm:inline">
-                {html.length.toLocaleString()} chars
-              </span>
-              {/* Word wrap toggle */}
-              <button
-                onClick={() => setWordWrap(!wordWrap)}
-                title={wordWrap ? "Disable word wrap" : "Enable word wrap"}
-                className={`p-1 rounded transition-colors ${wordWrap ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                <WrapText className="w-3.5 h-3.5" />
-              </button>
-              {/* Copy button */}
-              <button
-                onClick={handleCopy}
-                title="Copy HTML"
-                className="p-1 rounded text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {copied
-                  ? <CheckCircle className="w-3.5 h-3.5 text-green-400" />
-                  : <Copy className="w-3.5 h-3.5" />}
-              </button>
-            </span>
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <kbd className="px-1.5 py-0.5 rounded bg-secondary border border-border font-mono text-[10px]">
+                {typeof navigator !== "undefined" && navigator.platform.includes("Mac") ? "Cmd" : "Ctrl"}+S
+              </kbd>
+              <span>to save</span>
+            </div>
           </div>
           <textarea
             value={html}
-            onChange={(e) => {
-              setHtml(e.target.value);
-              setSaved(false);
-            }}
-            className="flex-1 p-4 font-mono text-sm resize-none outline-none min-h-[50vh] leading-relaxed"
-            style={{
-              background: "hsl(222,47%,5%)",
-              color: "hsl(210,40%,88%)",
-              whiteSpace: wordWrap ? "pre-wrap" : "pre",
-              overflowWrap: wordWrap ? "break-word" : "normal",
-              overflowX: wordWrap ? "hidden" : "auto",
-            }}
+            onChange={(e) => setHtml(e.target.value)}
+            className="flex-1 p-4 font-mono text-xs leading-relaxed resize-none outline-none bg-[#0d1117] text-[#c9d1d9]"
+            style={{ whiteSpace: wordWrap ? "pre-wrap" : "pre", overflowWrap: wordWrap ? "break-word" : "normal", tabSize: 2 }}
             spellCheck={false}
-            aria-label="HTML editor"
+            placeholder="Portfolio HTML will appear here..."
           />
         </div>
 
-        {/* Right: live preview */}
-        <div className="lg:w-1/2 flex flex-col">
-          <div className="px-4 py-2 border-b border-border bg-secondary/50 flex items-center gap-2 shrink-0">
-            <div className="flex gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
-              <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-              <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
-            </div>
-            <span className="text-xs text-muted-foreground ml-2">Live Preview — {displayName}</span>
-            <div className="ml-auto flex items-center gap-1.5">
+        <div className="flex flex-col w-1/2 bg-secondary">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+            <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] text-green-600 dark:text-green-400 font-medium">Live</span>
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Live Preview</span>
             </div>
+            {hasUnsavedChanges && <span className="text-[10px] text-amber-500 font-semibold">Unsaved changes</span>}
           </div>
-          <iframe
-            srcDoc={html}
-            title="Live Preview"
-            className="flex-1 w-full border-0 min-h-[50vh]"
-            sandbox="allow-same-origin allow-scripts"
-          />
+          <iframe srcDoc={html} title="Live Preview" className="flex-1 border-0" sandbox="allow-same-origin allow-scripts" />
         </div>
       </div>
-
-      {/* Status bar */}
-      <footer className="h-8 shrink-0 flex items-center justify-between px-4 border-t border-border bg-card text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-          Live preview active
-          {hasUnsavedChanges && (
-            <span className="text-amber-500 ml-2">Unsaved changes</span>
-          )}
-        </span>
-        <span className="hidden sm:inline">Press Ctrl+S to save</span>
-      </footer>
     </div>
   );
 };

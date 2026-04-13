@@ -1,3 +1,6 @@
+// src/lib/api.ts
+// Added: authApi.deleteAccount for the settings page account deletion flow
+
 import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -9,9 +12,7 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -27,16 +28,16 @@ api.interceptors.response.use(
   }
 );
 
-// Auth
 export const authApi = {
   register: (data: { name: string; email: string; password: string }) =>
     api.post("/auth/register", data),
   login: (data: { email: string; password: string }) =>
     api.post("/auth/login", data),
   getMe: () => api.get("/auth/me"),
+  deleteAccount: (data: { password: string }) =>
+    api.delete("/auth/account", { data }),
 };
 
-// Portfolio
 export const portfolioApi = {
   generate: (data: FormData | object) => {
     if (data instanceof FormData) {

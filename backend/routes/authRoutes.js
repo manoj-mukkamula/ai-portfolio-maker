@@ -1,18 +1,16 @@
-// routes/authRoutes.js — Auth endpoints
-// /api/auth/register, /api/auth/login, /api/auth/me
+// backend/routes/authRoutes.js
+// Added: DELETE /account for account deletion
 
 const express = require("express");
-const { register, login, getMe } = require("../controllers/authController");
+const { register, login, getMe, deleteAccount } = require("../controllers/authController");
 const { protect } = require("../middleware/authMiddleware");
 const { authRateLimiter } = require("../middleware/rateLimiter");
 
 const router = express.Router();
 
-// Auth-specific rate limiter applied to register + login only
 router.post("/register", authRateLimiter, register);
-router.post("/login", authRateLimiter, login);
-
-// Protected route — requires valid JWT
-router.get("/me", protect, getMe);
+router.post("/login",    authRateLimiter, login);
+router.get("/me",        protect, getMe);
+router.delete("/account", protect, deleteAccount);
 
 module.exports = router;

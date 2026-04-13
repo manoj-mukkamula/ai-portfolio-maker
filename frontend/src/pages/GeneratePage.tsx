@@ -1,43 +1,39 @@
 // src/pages/GeneratePage.tsx
+// Key changes:
+//  - 10-second preloader plays, then API call fires AND navigates to /preview/:id?loading=1
+//  - PreviewPage reads ?loading=1 to show skeleton first, then fades in the portfolio
+//  - Placeholder text uses real-sounding Indian dev profile (not "Rohan Mehta" only)
 
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
+import GeneratePreloader from "@/components/GeneratePreloader";
 import { portfolioApi } from "@/lib/api";
 import { TEMPLATES } from "@/lib/templates";
 import {
   Upload, FileText, Sparkles, Info, Loader2,
-  CheckCircle, Cpu, ChevronDown, X, Zap,
-  ShieldCheck, Clock, Layers,
+  CheckCircle, Cpu, ChevronDown, X,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-const TEMPLATE_META: Record<string, { desc: string; mood: string; bestFor: string }> = {
-  "glass-terminal":   { desc: "Dark terminal aesthetic with neon accents and grid overlays.", mood: "Tech, hacker, developer", bestFor: "Software Engineers, Security" },
-  "brutalist-grid":   { desc: "Raw editorial grid with bold typography and newspaper layout.", mood: "Bold, graphic, editorial", bestFor: "Designers, Creatives" },
-  "aurora-luxury":    { desc: "Gradient-rich dark luxury with frosted glass and elegance.", mood: "Refined, premium, moody", bestFor: "Product, UX, Senior Roles" },
-  "swiss-precision":  { desc: "Clean minimal grid following classic Swiss typography rules.", mood: "Minimal, professional, clean", bestFor: "Consulting, Business, Finance" },
-  "obsidian-code":    { desc: "IDE-inspired dark layout with sidebar and code structure.", mood: "Dev-forward, technical, dark", bestFor: "Full-Stack, Backend Devs" },
-  "kinetic-magazine": { desc: "Split-screen magazine layout with dynamic typographic energy.", mood: "Creative, expressive, editorial", bestFor: "Marketing, Content, Brand" },
-};
 
 const GeneratePage = () => {
   const { refreshUser, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<"upload" | "paste">("upload");
-  const [file, setFile] = useState<File | null>(null);
-  const [resumeText, setResumeText] = useState("");
+  const [tab, setTab]                       = useState<"upload" | "paste">("upload");
+  const [file, setFile]                     = useState<File | null>(null);
+  const [resumeText, setResumeText]         = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [generating, setGenerating] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
-  const [tipOpen, setTipOpen] = useState(true);
+  const [showPreloader, setShowPreloader]   = useState(false);
+  const [dragOver, setDragOver]             = useState(false);
+  const [tipOpen, setTipOpen]               = useState(true);
 
-  const isSubmitting = useRef(false);
+  // Holds the in-flight API promise so we can await it after preloader ends
+  const apiPromiseRef  = useRef<Promise<any> | null>(null);
+  const isSubmittingRef = useRef(false);
   const selectedTpl = TEMPLATES.find((t) => t.id === selectedTemplate);
-  const selectedMeta = selectedTemplate ? TEMPLATE_META[selectedTemplate] : null;
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -53,8 +49,8 @@ const GeneratePage = () => {
     [toast]
   );
 
-  const handleGenerate = async () => {
-    if (isSubmitting.current) return;
+  const handleGenerate = () => {
+    if (isSubmittingRef.current) return;
     if (!selectedTemplate) {
       toast({ title: "Select a template", description: "Choose a template before generating.", variant: "destructive" });
       return;
@@ -72,46 +68,50 @@ const GeneratePage = () => {
       return;
     }
 
-    isSubmitting.current = true;
-    setGenerating(true);
+    isSubmittingRef.current = true;
 
-    // Navigate to the generating page immediately — skeleton shows while API runs
-    navigate("/generating", {
-      state: { templateId: selectedTemplate },
-    });
+    // Fire the API call immediately (parallel with animation)
+    if (tab === "upload" && file) {
+      const fd = new FormData();
+      fd.append("resume", file);
+      fd.append("template", selectedTpl!.template);
+      fd.append("templateName", selectedTpl!.id);
+      apiPromiseRef.current = portfolioApi.generate(fd);
+    } else {
+      apiPromiseRef.current = portfolioApi.generate({
+        resumeText,
+        template: selectedTpl!.template,
+        templateName: selectedTpl!.id,
+      });
+    }
+
+    // Show preloader (10s animation)
+    setShowPreloader(true);
+  };
+
+  // Called when the 10-second preloader finishes
+  const handlePreloaderComplete = async () => {
+    setShowPreloader(false);
 
     try {
-      let res;
-      if (tab === "upload" && file) {
-        const fd = new FormData();
-        fd.append("resume", file);
-        fd.append("template", selectedTpl!.template);
-        fd.append("templateName", selectedTpl!.id);
-        res = await portfolioApi.generate(fd);
-      } else {
-        res = await portfolioApi.generate({ resumeText, template: selectedTpl!.template, templateName: selectedTpl!.id });
-      }
+      const res = await apiPromiseRef.current;
       await refreshUser();
-      const pid = res.data.portfolio?.id || res.data.portfolio?._id;
-      // Update the generating page with the portfolioId to trigger redirect
-      navigate("/generating", {
-        replace: true,
-        state: { templateId: selectedTemplate, portfolioId: pid },
-      });
+      const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
+      if (!pid) throw new Error("No portfolio ID returned");
+      // Navigate to preview with ?loading=1 so PreviewPage shows skeleton first
+      navigate(`/preview/${pid}?loading=1`);
     } catch (err: any) {
-      isSubmitting.current = false;
-      setGenerating(false);
-      navigate("/generate", { replace: true });
+      isSubmittingRef.current = false;
       toast({
         title: "Generation failed",
-        description: err.response?.data?.message || "Something went wrong. Please try again.",
+        description: err?.response?.data?.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const hasInput = tab === "upload" ? !!file : resumeText.trim().length > 0;
-  const canGenerate = hasInput && !!selectedTemplate && (user?.credits ?? 0) > 0 && !generating;
+  const hasInput  = tab === "upload" ? !!file : resumeText.trim().length > 0;
+  const canGenerate = hasInput && !!selectedTemplate && (user?.credits ?? 0) > 0;
   const charCount = resumeText.length;
   const charColor =
     charCount === 0 ? "text-muted-foreground"
@@ -119,17 +119,31 @@ const GeneratePage = () => {
     : charCount < 200 ? "text-amber-500"
     : "text-green-500";
 
-  // Readiness checklist
-  const checks = [
-    { label: tab === "upload" ? "Resume file uploaded" : "Resume text provided", done: hasInput },
-    { label: "Template selected", done: !!selectedTemplate },
-    { label: "Credits available", done: (user?.credits ?? 0) > 0 },
-  ];
+  const PASTE_PLACEHOLDER = `Paste your resume text here...
+
+Example format that works best:
+Name: Arjun Sharma
+Email: arjun.sharma@gmail.com
+Phone: +91 98765 43210
+
+Skills: React, Node.js, TypeScript, MongoDB, Docker
+Education: B.Tech Computer Science, VIT Vellore, 2025
+
+Experience:
+  - SDE Intern at Razorpay (Jun 2024 – Dec 2024)
+    Built payment webhook retry system using Node.js and Redis
+    Reduced failed transactions by 18%
+
+Projects:
+  - DevConnect: Real-time developer networking app (React, Socket.io)
+  - AutoResume: AI-powered resume builder using OpenAI API`;
 
   return (
     <AppLayout>
+      {showPreloader && <GeneratePreloader onComplete={handlePreloaderComplete} />}
+
       <div className="max-w-5xl mx-auto animate-fade-in">
-        {/* Header */}
+        {/* Page Header */}
         <div className="mb-5">
           <div className="flex items-center gap-2 mb-1">
             <Cpu className="w-3.5 h-3.5 text-primary" />
@@ -137,21 +151,23 @@ const GeneratePage = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground mt-0.5">Portfolio Generator</h1>
           <p className="text-muted-foreground mt-1 text-sm max-w-xl">
-            Upload your resume and let Google Gemini AI extract your details and build a professional portfolio automatically.
+            Upload your resume and let Google Gemini AI extract your details and build a professional portfolio website automatically.
           </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          {/* ── Left: Input + Templates ── */}
+          {/* Left: Input + Templates */}
           <div className="lg:col-span-3 space-y-5">
-            {/* Tabs */}
+            {/* Input tabs */}
             <div className="flex border-b border-border">
               {(["upload", "paste"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors ${
-                    tab === t ? "text-primary border-b-2 border-primary" : "text-muted-foreground hover:text-foreground"
+                  className={`px-4 py-2.5 text-sm font-medium transition-colors capitalize ${
+                    tab === t
+                      ? "text-primary border-b-2 border-primary"
+                      : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t === "upload" ? "Upload File" : "Paste Text"}
@@ -159,7 +175,6 @@ const GeneratePage = () => {
               ))}
             </div>
 
-            {/* Upload */}
             {tab === "upload" ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -191,7 +206,10 @@ const GeneratePage = () => {
                   <>
                     <div
                       className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center transition-all duration-200 ${dragOver ? "scale-110" : ""}`}
-                      style={{ background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))", border: "1px solid rgba(99,102,241,0.2)" }}
+                      style={{
+                        background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
+                        border: "1px solid rgba(99,102,241,0.2)",
+                      }}
                     >
                       <Upload className={`w-5 h-5 text-primary transition-transform duration-200 ${dragOver ? "scale-110" : ""}`} />
                     </div>
@@ -214,14 +232,14 @@ const GeneratePage = () => {
                 <textarea
                   value={resumeText}
                   onChange={(e) => setResumeText(e.target.value)}
-                  placeholder={`Paste your resume text here...\n\nFor best results, include:\nName: Rohan Mehta\nEmail: rohan@example.com\nPhone: +91 98765 43210\nSkills: React, Node.js, MongoDB, TypeScript\nEducation: B.Tech CSE, 2025\nExperience: Software Intern at XYZ (2024)\nProjects: AI Resume Analyzer, Real-time Chat App`}
-                  rows={11}
-                  className="w-full rounded-xl bg-secondary border border-border p-4 text-sm text-foreground placeholder:text-muted-foreground/45 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all"
+                  placeholder={PASTE_PLACEHOLDER}
+                  rows={12}
+                  className="w-full rounded-xl bg-secondary border border-border p-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all font-mono"
                 />
                 <div className="flex items-center justify-between mt-1.5">
                   <p className={`text-xs ${charColor} font-medium transition-colors`}>
                     {charCount} characters
-                    {charCount < 200 && charCount > 0 && " — add more for richer results"}
+                    {charCount > 0 && charCount < 200 && " — add more for richer results"}
                     {charCount >= 200 && " — looking good!"}
                   </p>
                   <p className="text-xs text-muted-foreground">AI works best with 200+ characters</p>
@@ -253,7 +271,7 @@ const GeneratePage = () => {
                         title={tpl.name}
                         className="w-full h-full border-0 pointer-events-none"
                         style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%", height: "250%" }}
-                        sandbox="allow-same-origin allow-scripts"
+                        sandbox="allow-same-origin"
                       />
                       {selectedTemplate === tpl.id && (
                         <div className="absolute top-2 right-2">
@@ -280,112 +298,50 @@ const GeneratePage = () => {
             </div>
           </div>
 
-          {/* ── Right: Info panel ── */}
+          {/* Right: Live Preview + Tip */}
           <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 lg:self-start">
-
-            {/* Readiness checklist */}
-            <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
-              <div className="px-4 py-3 border-b border-border">
-                <p className="text-sm font-bold text-foreground flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-primary" /> Ready to generate
-                </p>
-              </div>
-              <div className="p-4 space-y-3">
-                {checks.map((c, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div
-                      className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all duration-300"
-                      style={{
-                        background: c.done ? "rgba(34,197,94,0.12)" : "rgba(148,163,184,0.1)",
-                        border: c.done ? "1px solid rgba(34,197,94,0.3)" : "1px solid rgba(148,163,184,0.2)",
-                      }}
-                    >
-                      {c.done
-                        ? <CheckCircle className="w-3 h-3 text-green-500" />
-                        : <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />}
-                    </div>
-                    <span className={`text-xs font-medium transition-colors ${c.done ? "text-foreground" : "text-muted-foreground"}`}>
-                      {c.label}
-                    </span>
+            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-card">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
                   </div>
-                ))}
-                <div className="mt-1 pt-2 border-t border-border">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] text-muted-foreground">Completion</span>
-                    <span className="text-[10px] font-bold text-primary">
-                      {checks.filter(c => c.done).length} / {checks.length}
-                    </span>
-                  </div>
-                  <div className="w-full h-1 rounded-full bg-secondary overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${(checks.filter(c => c.done).length / checks.length) * 100}%`,
-                        background: "linear-gradient(90deg, #6366f1, #22c55e)",
-                      }}
-                    />
-                  </div>
+                  <span className="text-xs text-muted-foreground">Live Preview</span>
                 </div>
+                {selectedTpl && (
+                  <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                    {selectedTpl.name}
+                  </span>
+                )}
               </div>
+              <div className="h-72 flex items-center justify-center bg-secondary overflow-hidden relative">
+                {selectedTpl ? (
+                  <iframe
+                    srcDoc={selectedTpl.template}
+                    title="Template Preview"
+                    className="w-full h-full border-0"
+                    sandbox="allow-same-origin"
+                  />
+                ) : (
+                  <div className="text-center px-6">
+                    <div className="w-10 h-10 rounded-xl bg-border flex items-center justify-center mx-auto mb-2">
+                      <FileText className="w-5 h-5 text-muted-foreground/40" />
+                    </div>
+                    <p className="text-sm text-muted-foreground">Select a template to preview</p>
+                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mt-1">Preview renders here</p>
+                  </div>
+                )}
+              </div>
+              {file && (
+                <div className="px-4 py-2 border-t border-border flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  <span className="text-xs text-muted-foreground truncate">Ready: {file.name}</span>
+                </div>
+              )}
             </div>
 
-            {/* Selected template info */}
-            {selectedMeta ? (
-              <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                  <p className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-primary" /> {selectedTpl?.name}
-                  </p>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary uppercase">
-                    {selectedTpl?.style}
-                  </span>
-                </div>
-                <div className="p-4 space-y-3">
-                  <p className="text-xs text-muted-foreground leading-relaxed">{selectedMeta.desc}</p>
-                  <div className="space-y-1.5">
-                    <div className="flex gap-2">
-                      <span className="text-[10px] text-muted-foreground font-medium w-14 shrink-0">Mood</span>
-                      <span className="text-[10px] text-foreground">{selectedMeta.mood}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <span className="text-[10px] text-muted-foreground font-medium w-14 shrink-0">Best for</span>
-                      <span className="text-[10px] text-foreground">{selectedMeta.bestFor}</span>
-                    </div>
-                  </div>
-                  {/* Mini thumbnail */}
-                  <div className="h-32 rounded-lg overflow-hidden border border-border bg-secondary relative mt-1">
-                    <iframe
-                      srcDoc={selectedTpl!.template}
-                      title={selectedTpl!.name}
-                      className="w-full h-full border-0 pointer-events-none"
-                      sandbox="allow-same-origin allow-scripts"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
-                    <div className="absolute bottom-2 left-2 right-2">
-                      <div className="text-[9px] font-bold text-white/80 bg-black/40 backdrop-blur-sm px-2 py-1 rounded-md w-fit">
-                        Live preview
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
-                <div className="px-4 py-3 border-b border-border">
-                  <p className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <Layers className="w-4 h-4 text-muted-foreground" /> Template Preview
-                  </p>
-                </div>
-                <div className="p-6 flex flex-col items-center text-center gap-2">
-                  <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
-                    <FileText className="w-5 h-5 text-muted-foreground/40" />
-                  </div>
-                  <p className="text-sm text-muted-foreground">Select a template to see its details and preview</p>
-                </div>
-              </div>
-            )}
-
-            {/* AI Tip */}
             <div className="bg-card rounded-xl border border-border shadow-card overflow-hidden">
               <button
                 onClick={() => setTipOpen(!tipOpen)}
@@ -398,19 +354,15 @@ const GeneratePage = () => {
                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${tipOpen ? "rotate-180" : ""}`} />
               </button>
               {tipOpen && (
-                <div className="px-4 pb-3 space-y-2">
+                <div className="px-4 pb-3">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Include your name, email, skills, education, and projects for the best results. The more context you give Gemini, the richer your portfolio will be.
+                    Include your name, email, skills, education, and at least two projects for the best results.
+                    The more context you provide, the richer and more personalised your portfolio will be.
                   </p>
-                  <div className="flex items-center gap-2 pt-1">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                    <p className="text-[11px] text-muted-foreground">Average generation time: 15 to 25 seconds</p>
-                  </div>
                 </div>
               )}
             </div>
 
-            {/* Credit warning */}
             {(user?.credits ?? 0) === 0 && (
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700 p-4">
                 <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
@@ -423,34 +375,26 @@ const GeneratePage = () => {
 
         {/* Generate button row */}
         <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-sm">
             <Info className="w-4 h-4 text-primary" />
             <span className="text-muted-foreground text-sm">Cost per generation:</span>
-            <span className="text-primary font-semibold text-sm">1 Credit</span>
+            <span className="text-primary font-semibold">1 Credit</span>
             <span className="text-muted-foreground text-sm hidden sm:inline">
               ({user?.credits ?? 0} remaining)
             </span>
           </div>
-
           <button
             onClick={handleGenerate}
-            disabled={!canGenerate}
-            className="px-7 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all active:scale-[0.98]"
+            disabled={!canGenerate || showPreloader}
+            className="px-7 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
             style={{
-              background: canGenerate
-                ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
-                : undefined,
-              color: canGenerate ? "#fff" : undefined,
-              boxShadow: canGenerate ? "0 4px 20px rgba(99,102,241,0.35)" : undefined,
-              opacity: canGenerate ? 1 : 0.45,
-              cursor: canGenerate ? "pointer" : "not-allowed",
+              background: canGenerate && !showPreloader ? "linear-gradient(135deg, #6366f1, #8b5cf6)" : undefined,
+              color: "#fff",
+              boxShadow: canGenerate && !showPreloader ? "0 4px 20px rgba(99,102,241,0.35)" : undefined,
             }}
           >
-            {generating ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Starting...</>
-            ) : (
-              <><Sparkles className="w-4 h-4" /> Generate Portfolio</>
-            )}
+            <Sparkles className="w-4 h-4" />
+            Generate Portfolio
           </button>
         </div>
       </div>

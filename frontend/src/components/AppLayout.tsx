@@ -1,10 +1,12 @@
 // src/components/AppLayout.tsx
-// Dark mode toggle moved to navbar (top right, next to profile).
-// Mobile menu retains its own toggle since sidebar is hidden.
+// Fix: "Account info" button in profile dropdown now navigates to /settings (was a dummy no-op)
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Zap, Menu, LogOut, User, Sun, Moon, ChevronDown, X, BrainCircuit } from "lucide-react";
+import {
+  Zap, Menu, LogOut, Settings, Sun, Moon,
+  ChevronDown, X, BrainCircuit,
+} from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AppSidebar from "./AppSidebar";
@@ -21,7 +23,7 @@ const MobileMenu = ({ onClose }: { onClose: () => void }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-card/98 backdrop-blur-sm flex flex-col lg:hidden">
+    <div className="fixed inset-0 z-50 bg-card/98 backdrop-blur-sm flex flex-col lg:hidden animate-fade-in">
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div
@@ -41,6 +43,7 @@ const MobileMenu = ({ onClose }: { onClose: () => void }) => {
           { label: "Dashboard", path: "/dashboard" },
           { label: "Generate",  path: "/generate"  },
           { label: "History",   path: "/history"   },
+          { label: "Settings",  path: "/settings"  },
         ].map((item) => (
           <Link
             key={item.path}
@@ -105,11 +108,14 @@ const ProfileDropdown = () => {
         >
           {user?.name?.charAt(0).toUpperCase() ?? "U"}
         </div>
-        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-muted-foreground transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border bg-card shadow-modal z-50 overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-64 rounded-2xl border border-border bg-card shadow-modal z-50 overflow-hidden animate-fade-in">
+          {/* User info */}
           <div className="px-4 py-3.5 border-b border-border">
             <div className="flex items-center gap-3">
               <div
@@ -125,10 +131,15 @@ const ProfileDropdown = () => {
             </div>
           </div>
 
+          {/* Credits */}
           <div className="px-4 py-3 border-b border-border">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground font-medium">Credits remaining</span>
-              <span className={`text-xs font-bold ${credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-emerald-500"}`}>
+              <span
+                className={`text-xs font-bold ${
+                  credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-emerald-500"
+                }`}
+              >
                 {credits} / 5
               </span>
             </div>
@@ -137,18 +148,29 @@ const ProfileDropdown = () => {
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${(credits / 5) * 100}%`,
-                  background: credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "linear-gradient(90deg, #6366f1, #22c55e)",
+                  background:
+                    credits === 0
+                      ? "#ef4444"
+                      : credits <= 2
+                      ? "#f59e0b"
+                      : "linear-gradient(90deg, #6366f1, #22c55e)",
                 }}
               />
             </div>
             <p className="text-[10px] text-muted-foreground mt-1">Resets every 24 hours</p>
           </div>
 
+          {/* Actions */}
           <div className="p-2">
-            <button className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm text-foreground hover:bg-secondary transition-colors">
-              <User className="w-4 h-4 text-muted-foreground" />
-              Account info
+            {/* Settings — actually navigates now */}
+            <button
+              onClick={() => { setOpen(false); navigate("/settings"); }}
+              className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm text-foreground hover:bg-secondary transition-colors"
+            >
+              <Settings className="w-4 h-4 text-muted-foreground" />
+              Account settings
             </button>
+
             <button
               onClick={handleLogout}
               className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition-colors"
@@ -181,7 +203,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <AppSidebar />
 
       <div className="flex-1 flex flex-col min-h-screen">
-        <header className="flex items-center justify-between px-4 lg:px-8 py-3 border-b border-border bg-card sticky top-0 z-40">
+        <header className="flex items-center justify-between px-4 lg:px-6 py-3 border-b border-border bg-card sticky top-0 z-40">
           {/* Mobile hamburger */}
           <button
             className="lg:hidden p-2 rounded-lg hover:bg-secondary transition-colors"
@@ -190,33 +212,29 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             <Menu className="w-5 h-5 text-foreground" />
           </button>
 
-          {/* Brand on mobile */}
           <span className="lg:hidden text-sm font-bold text-foreground">AI Portfolio Maker</span>
 
           <div className="flex items-center gap-2 ml-auto">
             {/* Credits pill */}
             <div
               className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm font-medium cursor-default ${creditPillClass}`}
-              title={credits === 0 ? "No credits left, resets every 24 hours" : `${credits} of 5 daily credits remaining`}
+              title={`${credits} of 5 daily credits remaining`}
             >
               <Zap className="w-3.5 h-3.5" />
               {credits} Credit{credits !== 1 ? "s" : ""}
             </div>
 
-            {/* Dark mode toggle in navbar — desktop visible */}
+            {/* Dark mode toggle — always visible in ALL navbars */}
             <button
               onClick={toggleTheme}
               title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              className="p-2 rounded-xl border border-border hover:bg-secondary transition-colors hidden sm:flex items-center justify-center"
+              className="p-2 rounded-lg hover:bg-secondary transition-colors border border-transparent hover:border-border"
             >
-              {theme === "dark" ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-muted-foreground" />
-              )}
+              {theme === "dark"
+                ? <Sun className="w-4 h-4 text-amber-400" />
+                : <Moon className="w-4 h-4 text-muted-foreground" />}
             </button>
 
-            {/* Profile dropdown */}
             <ProfileDropdown />
           </div>
         </header>

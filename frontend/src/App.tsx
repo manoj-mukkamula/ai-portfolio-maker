@@ -1,8 +1,11 @@
 // src/App.tsx
+// Updates:
+//  - Added routes: / (HomePage), /about, /contact, /settings
+//  - / now shows the landing HomePage instead of redirecting to /login
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,17 +13,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import SplashScreen from "@/components/SplashScreen";
+import HomePage from "./pages/HomePage";
+import AboutPage from "./pages/AboutPage";
+import ContactPage from "./pages/ContactPage";
 import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import GeneratePage from "./pages/GeneratePage";
-import GeneratingPage from "./pages/GeneratingPage";
 import HistoryPage from "./pages/HistoryPage";
 import PreviewPage from "./pages/PreviewPage";
 import EditorPage from "./pages/EditorPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
-
 const hasSeenSplash = sessionStorage.getItem("splash_shown") === "true";
 
 const App = () => {
@@ -34,7 +39,6 @@ const App = () => {
   return (
     <ThemeProvider>
       {!splashDone && <SplashScreen onComplete={handleSplashComplete} />}
-
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
@@ -42,13 +46,15 @@ const App = () => {
           <BrowserRouter>
             <AuthProvider>
               <Routes>
-                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/"        element={<HomePage />} />
+                <Route path="/about"   element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
                 <Route path="/login"    element={<AuthPage />} />
                 <Route path="/register" element={<AuthPage />} />
                 <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
                 <Route path="/generate"  element={<ProtectedRoute><GeneratePage /></ProtectedRoute>} />
-                <Route path="/generating" element={<ProtectedRoute><GeneratingPage /></ProtectedRoute>} />
                 <Route path="/history"   element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
+                <Route path="/settings"  element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                 <Route path="/preview/:id" element={<ProtectedRoute><PreviewPage /></ProtectedRoute>} />
                 <Route path="/editor/:id"  element={<ProtectedRoute><EditorPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
