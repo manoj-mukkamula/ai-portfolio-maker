@@ -1,8 +1,8 @@
 // src/pages/GeneratePage.tsx
 // Key changes:
+//  - Better quota error message with clear instructions
 //  - 10-second preloader plays, then API call fires AND navigates to /preview/:id?loading=1
 //  - PreviewPage reads ?loading=1 to show skeleton first, then fades in the portfolio
-//  - Placeholder text uses real-sounding Indian dev profile (not "Rohan Mehta" only)
 
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +13,7 @@ import { portfolioApi } from "@/lib/api";
 import { TEMPLATES } from "@/lib/templates";
 import {
   Upload, FileText, Sparkles, Info, Loader2,
-  CheckCircle, Cpu, ChevronDown, X,
+  CheckCircle, Cpu, ChevronDown, X, AlertTriangle,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -29,6 +29,7 @@ const GeneratePage = () => {
   const [showPreloader, setShowPreloader]   = useState(false);
   const [dragOver, setDragOver]             = useState(false);
   const [tipOpen, setTipOpen]               = useState(true);
+  const [quotaError, setQuotaError]         = useState<string | null>(null);
 
   // Holds the in-flight API promise so we can await it after preloader ends
   const apiPromiseRef  = useRef<Promise<any> | null>(null);
@@ -51,6 +52,8 @@ const GeneratePage = () => {
 
   const handleGenerate = () => {
     if (isSubmittingRef.current) return;
+    setQuotaError(null);
+
     if (!selectedTemplate) {
       toast({ title: "Select a template", description: "Choose a template before generating.", variant: "destructive" });
       return;
@@ -98,15 +101,25 @@ const GeneratePage = () => {
       await refreshUser();
       const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
       if (!pid) throw new Error("No portfolio ID returned");
-      // Navigate to preview with ?loading=1 so PreviewPage shows skeleton first
       navigate(`/preview/${pid}?loading=1`);
     } catch (err: any) {
       isSubmittingRef.current = false;
-      toast({
-        title: "Generation failed",
-        description: err?.response?.data?.message || "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
+      const msg: string = err?.response?.data?.message || err?.message || "Something went wrong. Please try again.";
+
+      // Show a persistent banner for quota errors since they need action
+      if (
+        msg.toLowerCase().includes("quota") ||
+        msg.toLowerCase().includes("daily") ||
+        msg.toLowerCase().includes("midnight")
+      ) {
+        setQuotaError(msg);
+      } else {
+        toast({
+          title: "Generation failed",
+          description: msg,
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -154,6 +167,35 @@ Projects:
             Upload your resume and let Google Gemini AI extract your details and build a professional portfolio website automatically.
           </p>
         </div>
+
+        {/* Quota error banner */}
+        {quotaError && (
+          <div className="mb-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4 flex gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm mb-1">
+                Gemini API Quota Reached
+              </p>
+              <p className="text-amber-700 dark:text-amber-400 text-xs leading-relaxed">
+                The free Gemini API quota resets at midnight Pacific Time (around 12:30 PM IST).
+                To keep generating right now, add a second API key from a different Google account
+                as <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded">GEMINI_API_KEY_2</code> in{" "}
+                <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded">backend/.env</code> and restart the server.
+              </p>
+              <a
+                href="https://aistudio.google.com/app/apikey"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300 underline mt-2 font-medium"
+              >
+                Get a free API key at Google AI Studio
+              </a>
+            </div>
+            <button onClick={() => setQuotaError(null)} className="ml-auto text-amber-600 hover:text-amber-800 shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
           {/* Left: Input + Templates */}

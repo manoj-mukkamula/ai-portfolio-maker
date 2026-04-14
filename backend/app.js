@@ -5,7 +5,6 @@
 const express   = require("express");
 const helmet    = require("helmet");
 const cors      = require("cors");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { globalRateLimiter } = require("./middleware/rateLimiter");
 const errorHandler           = require("./middleware/errorHandler");
 
@@ -52,6 +51,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(globalRateLimiter);
 
 // ── Health check ────────────────────────────────────────────────────────────
+// Simple liveness probe — does NOT call Gemini (no quota burned).
 app.get("/health", (_req, res) =>
   res.json({
     status: "ok",
@@ -60,21 +60,16 @@ app.get("/health", (_req, res) =>
   })
 );
 
-// ── Gemini diagnostic endpoint ──────────────────────────────────────────────
+// ── Gemini key status endpoint ──────────────────────────────────────────────
 // GET /health/gemini
-// Tests every configured API key against every model in MODEL_PRIORITY.
-// Returns a structured report so you can see exactly which key+model combos work.
-// No authentication required — safe to call from curl or a browser.
+// Returns which keys are configured and their key previews.
+// Does NOT make any Gemini API calls — zero quota consumed.
+//
+// If you need to verify a key works, test it directly in Google AI Studio:
+//   https://aistudio.google.com/app/prompts/new_chat
 //
 // Example: curl http://localhost:5000/health/gemini
-const GEMINI_MODELS = [
-  "gemini-2.0-flash",
-  "gemini-2.0-flash-lite",
-  "gemini-1.5-flash",
-  "gemini-2.5-flash-preview-04-17",
-];
-
-app.get("/health/gemini", async (_req, res) => {
+app.get("/health/gemini", (_req, res) => {
   const keyEnvVars = [
     "GEMINI_API_KEY",
     "GEMINI_API_KEY_2",
@@ -85,82 +80,34 @@ app.get("/health/gemini", async (_req, res) => {
 
   const keys = keyEnvVars
     .map((name) => ({ name, value: process.env[name] }))
-    .filter(({ value }) => typeof value === "string" && value.trim().length > 10);
-
-  if (keys.length === 0) {
-    return res.status(503).json({
-      ok: false,
-      error: "No Gemini API keys configured in .env",
-      fix: "Add GEMINI_API_KEY=AIza... to backend/.env and restart the server.",
-    });
-  }
-
-  const results = [];
-
-  for (const { name, value: apiKey } of keys) {
-    const keyResult = {
+    .filter(({ value }) => typeof value === "string" && value.trim().length > 10)
+    .map(({ name, value }) => ({
       envVar: name,
-      keyPreview: `...${apiKey.slice(-6)}`,
-      models: [],
-    };
+      keyPreview: `...${value.slice(-6)}`,
+      configured: true,
+    }));
 
-    for (const model of GEMINI_MODELS) {
-      const start = Date.now();
-      try {
-        const client = new GoogleGenerativeAI(apiKey);
-        const m = client.getGenerativeModel({ model });
-        // Use a minimal prompt to verify connectivity without burning tokens
-        const result = await Promise.race([
-          m.generateContent("Reply with just the word: ok"),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Timeout after 15s")), 15000)
-          ),
-        ]);
-        const text = result.response.text().trim().slice(0, 20);
-        keyResult.models.push({
-          model,
-          status: "ok",
-          responsePreview: text,
-          latencyMs: Date.now() - start,
-        });
-      } catch (err) {
-        const msg = (err?.message || "").toLowerCase();
-        let errorType = "other";
-        if (msg.includes("quota") || msg.includes("429") || msg.includes("resource_exhausted"))
-          errorType = "quota_exceeded";
-        else if (msg.includes("not found") || msg.includes("404") || msg.includes("model_not_found"))
-          errorType = "model_not_found";
-        else if (msg.includes("permission") || msg.includes("api key") || msg.includes("403"))
-          errorType = "invalid_key";
-        else if (msg.includes("timeout"))
-          errorType = "timeout";
+  const missing = keyEnvVars
+    .filter((name) => {
+      const v = process.env[name];
+      return !v || v.trim().length <= 10;
+    })
+    .map((name) => ({ envVar: name, configured: false }));
 
-        keyResult.models.push({
-          model,
-          status: "error",
-          errorType,
-          errorMessage: (err?.message || "Unknown error").slice(0, 150),
-          latencyMs: Date.now() - start,
-        });
-      }
-    }
+  const modelsInUse = [
+    "gemini-2.0-flash-lite  (primary — separate quota pool)",
+    "gemini-2.0-flash       (fallback — if lite quota exhausted)",
+  ];
 
-    const hasWorking = keyResult.models.some((m) => m.status === "ok");
-    keyResult.hasWorkingModel = hasWorking;
-    results.push(keyResult);
-  }
-
-  const anyWorking = results.some((r) => r.hasWorkingModel);
-
-  res.status(anyWorking ? 200 : 503).json({
-    ok: anyWorking,
-    summary: anyWorking
-      ? "At least one key and model combination is working."
-      : "No working key/model combination found. Check your API keys and quota.",
-    keysChecked: results.length,
-    modelsChecked: GEMINI_MODELS,
-    results,
-    tip: "If all models show model_not_found, your key may be restricted to certain regions. Create a fresh key at https://aistudio.google.com/app/apikey and test it there first.",
+  res.json({
+    keysConfigured: keys.length,
+    keys,
+    missingSlots: missing,
+    modelsInUse,
+    note: "This endpoint no longer calls Gemini to avoid burning free-tier quota. To test a key, visit https://aistudio.google.com/app/prompts/new_chat",
+    tip: keys.length === 0
+      ? "Add GEMINI_API_KEY=AIza... to backend/.env and restart the server."
+      : `You have ${keys.length} key(s) configured. Each key gets separate daily quota per model.`,
   });
 });
 
