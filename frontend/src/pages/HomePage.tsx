@@ -1,7 +1,4 @@
 // src/pages/HomePage.tsx
-// Enhanced "How it works" section with animated connectors, richer copy,
-// numbered badges, and an interactive hover state per step.
-// "How it works" is ONLY here (removed from Dashboard).
 
 import { Link } from "react-router-dom";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -15,37 +12,37 @@ const FEATURES = [
   {
     icon: Cpu,
     title: "Powered by Gemini AI",
-    desc: "Google's most capable AI model reads your resume and intelligently fills every section of your portfolio.",
+    desc: "Google Gemini reads your resume intelligently and fills every portfolio section with accurate, well-written content.",
     color: "#6366f1",
   },
   {
     icon: Zap,
-    title: "Ready in seconds",
-    desc: "From resume upload to a polished, live portfolio in under a minute. No setup, no code required.",
+    title: "Ready in under a minute",
+    desc: "From resume upload to a live, polished portfolio in seconds. No setup, no config, no code required.",
     color: "#f59e0b",
   },
   {
     icon: Palette,
     title: "6 premium templates",
-    desc: "Hand-crafted templates spanning minimal, dark, editorial, and luxury design aesthetics.",
+    desc: "Hand-crafted templates across minimal, dark, editorial, and luxury design styles. Pick the one that fits your vibe.",
     color: "#8b5cf6",
   },
   {
     icon: Download,
     title: "Export as HTML",
-    desc: "Download your portfolio as a single HTML file you can host anywhere, including GitHub Pages.",
+    desc: "Download your portfolio as a single self-contained HTML file and host it anywhere, including GitHub Pages.",
     color: "#10b981",
   },
   {
     icon: Shield,
     title: "Your data, your control",
-    desc: "Portfolios are tied to your account. Edit, delete, or download them anytime you like.",
+    desc: "Every portfolio is tied to your account. Edit, delete, or re-download them whenever you want.",
     color: "#06b6d4",
   },
   {
     icon: Upload,
     title: "PDF and DOCX support",
-    desc: "Upload directly from your file system or paste plain text — whichever works for you.",
+    desc: "Drag in a file or paste your resume text. Both paths produce the same great result.",
     color: "#ec4899",
   },
 ];
@@ -56,15 +53,15 @@ const HOW_IT_WORKS = [
     icon: Upload,
     color: "#6366f1",
     title: "Upload your resume",
-    desc: "Drop a PDF or DOCX, or paste your resume text directly into the editor. Supports all standard resume formats.",
-    detail: "Max 5 MB · PDF & DOCX",
+    desc: "Drop a PDF or DOCX, or paste your resume text directly. Works with all standard resume formats.",
+    detail: "Max 5 MB · PDF and DOCX",
   },
   {
     step: 2,
     icon: Palette,
     color: "#8b5cf6",
     title: "Choose a template",
-    desc: "Browse 6 professionally designed portfolio styles. Each one has a distinct aesthetic so your work gets the presentation it deserves.",
+    desc: "Browse 6 professionally designed styles, each with a live preview so you know exactly what you are getting.",
     detail: "6 templates · Live preview",
   },
   {
@@ -72,15 +69,15 @@ const HOW_IT_WORKS = [
     icon: Cpu,
     color: "#0ea5e9",
     title: "Gemini AI builds it",
-    desc: "Google Gemini reads your entire resume, extracts every detail, and writes compelling copy for each portfolio section automatically.",
-    detail: "Powered by Gemini 1.5 Pro",
+    desc: "Google Gemini extracts every detail from your resume and writes compelling, personalised copy for each section.",
+    detail: "Powered by Gemini 2.0",
   },
   {
     step: 4,
     icon: Eye,
     color: "#10b981",
     title: "Preview and refine",
-    desc: "Review your portfolio in the built-in preview. Use the code editor to make any tweaks directly to the HTML.",
+    desc: "Review the result in the built-in preview, then use the code editor to tweak anything directly in the HTML.",
     detail: "Live editor · Instant preview",
   },
   {
@@ -88,7 +85,7 @@ const HOW_IT_WORKS = [
     icon: Download,
     color: "#f59e0b",
     title: "Download or share",
-    desc: "Export a self-contained HTML file you can host anywhere. Share a preview link or deploy to GitHub Pages in minutes.",
+    desc: "Export a self-contained HTML file and host it anywhere. Deploy to GitHub Pages in a few clicks.",
     detail: "HTML export · Shareable link",
   },
 ];
@@ -122,7 +119,7 @@ const HomePage = () => {
             <button
               onClick={toggleTheme}
               className="p-2 rounded-lg hover:bg-secondary transition-colors"
-              title={theme === "dark" ? "Light mode" : "Dark mode"}
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
               {theme === "dark"
                 ? <Sun className="w-4 h-4 text-amber-400" />
@@ -250,11 +247,10 @@ const HomePage = () => {
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto text-base">
               No manual data entry. No design skills needed.
-              Upload once and let the AI do everything else.
+              Upload once and let the AI handle everything else.
             </p>
           </div>
 
-          {/* Steps — vertical timeline on mobile, horizontal on desktop */}
           <div className="relative">
             {/* Horizontal connector line (desktop only) */}
             <div
@@ -278,7 +274,6 @@ const HomePage = () => {
 
                   {/* Icon circle */}
                   <div className="relative mb-5 z-10">
-                    {/* Outer glow */}
                     <div
                       className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                       style={{
@@ -359,7 +354,7 @@ const HomePage = () => {
             <div className="relative z-10">
               <h2 className="text-3xl font-extrabold mb-4">Ready to build your portfolio?</h2>
               <p className="text-white/75 text-base mb-8 max-w-md mx-auto">
-                Join and create a professional portfolio in minutes. Free to start.
+                Create a professional portfolio in minutes. Free to start, no card needed.
               </p>
               <Link
                 to="/register"
