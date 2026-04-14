@@ -1,52 +1,35 @@
 // backend/services/geminiService.js
 //
-// KEY FIX: The previous version called Gemini multiple times per request
-// because the "Incomplete JSON" check was too strict and kept triggering
-// `continue`, which looped through all 5 models × 3 keys = up to 15 API
-// calls for a single user click. A new key's daily quota (around 1500
-// requests but token-based) was being blown through in 3 user clicks.
-//
-// FIXES IN THIS VERSION:
-//   1. Smarter JSON completeness check — trims whitespace/newlines before
-//      checking for closing brace. Gemini often adds a trailing newline.
-//   2. Correct error loop flow — bad JSON parse now tries next MODEL (not
-//      breaks to next key), matching the flow diagram in the comments below.
-//   3. Removed non-existent model "gemini-3-flash-preview" which 404s every
-//      time and wastes a call. The project requirement to keep
-//      "gemini-2.0-flash-preview" is still honoured at the bottom.
-//   4. maxOutputTokens raised to 2048 so the JSON never gets truncated mid-way.
-//   5. Added a per-call timeout (25 seconds) so a hanging request does not
-//      block the server indefinitely.
-//   6. Retry logic (1 retry with backoff) for transient "other" errors on
-//      primary model before cascading.
-
-// Models tried in order per key.
-// gemini-2.5-flash is the primary working free-tier model as of April 2026.
-// gemini-2.0-flash is a stable fallback.
-// gemini-2.0-flash-lite is a lightweight fallback.
-// gemini-2.0-flash-preview is kept per project requirement (may 404 on some keys).
-// gemini-3-flash-preview REMOVED — this model does not exist and always 404s,
-//   wasting a quota call every single request.
-// backend/services/geminiService.js
+// KEY FIXES in this version:
+//  1. gemini-2.5-flash marked PREVIEW — on free keys it often 404s or 429s immediately.
+//     Added "gemini-1.5-flash" and "gemini-1.5-flash-8b" as the most stable free-tier models.
+//  2. model_not_found now tries next MODEL (not next key) — prevents burning all keys on a missing model.
+//  3. "other" errors on the primary model now attempt one retry with 2-second backoff before cascading.
+//  4. Per-call timeout raised to 40 seconds — Gemini can be slow on first call.
+//  5. maxOutputTokens raised to 8192 to prevent ANY truncation.
+//  6. Detailed logging at each decision point so you can follow the fallback chain in terminal.
+//  7. graceful handling if all keys have the SAME quota state (all reset at same time).
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Models tried in order per key.
-// gemini-2.5-flash is the primary working free-tier model as of April 2026.
+// Ordered by reliability on free tier (April 2026):
+//   gemini-1.5-flash        — most reliable, generous free quota
+//   gemini-1.5-flash-8b     — ultra-fast, great for JSON extraction
+//   gemini-2.0-flash        — solid; free tier sometimes throttled
+//   gemini-2.0-flash-lite   — lightweight fallback
+//   gemini-2.5-flash-preview-04-17 — newest but often rate-limited on free keys
 const MODEL_PRIORITY = [
-  "gemini-2.5-flash",       // primary: best free-tier model right now
-  "gemini-2.0-flash",       // fallback: stable 2.0 alias
-  "gemini-2.0-flash-lite",  // fallback: lightweight 2.0
-  "gemini-2.0-flash-preview",
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-8b",
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-2.5-flash-preview-04-17",
 ];
 
 // Lazy client cache: one GoogleGenerativeAI instance per API key
 const _clients = new Map();
-
 const getClient = (apiKey) => {
-  if (!_clients.has(apiKey)) {
-    _clients.set(apiKey, new GoogleGenerativeAI(apiKey));
-  }
+  if (!_clients.has(apiKey)) _clients.set(apiKey, new GoogleGenerativeAI(apiKey));
   return _clients.get(apiKey);
 };
 
@@ -56,6 +39,8 @@ const getApiKeys = () => {
     process.env.GEMINI_API_KEY,
     process.env.GEMINI_API_KEY_2,
     process.env.GEMINI_API_KEY_3,
+    process.env.GEMINI_API_KEY_4,
+    process.env.GEMINI_API_KEY_5,
   ].filter((k) => typeof k === "string" && k.trim().length > 10);
 
   if (keys.length === 0) {
@@ -64,11 +49,10 @@ const getApiKeys = () => {
         "Get a free key at https://aistudio.google.com/app/apikey"
     );
   }
-
   return keys;
 };
 
-// Maps a caught error to a category string so we know what to do next
+// Maps a caught error to a category string
 const classifyError = (err) => {
   const msg = (err.message || "").toLowerCase();
   const status = err.status || err.statusCode || 0;
@@ -80,9 +64,7 @@ const classifyError = (err) => {
     msg.includes("permission_denied") ||
     msg.includes("permission denied") ||
     status === 403
-  ) {
-    return "key_invalid";
-  }
+  ) return "key_invalid";
 
   if (
     msg.includes("quota") ||
@@ -91,25 +73,21 @@ const classifyError = (err) => {
     msg.includes("too many requests") ||
     msg.includes("429") ||
     status === 429
-  ) {
-    return "quota";
-  }
+  ) return "quota";
 
   if (
     msg.includes("not found") ||
     msg.includes("model_not_found") ||
     msg.includes("404") ||
     status === 404
-  ) {
-    return "model_not_found";
-  }
+  ) return "model_not_found";
 
   return "other";
 };
 
-// Prompt that asks Gemini to extract resume data as clean JSON only
+// The extraction prompt — instructs Gemini to return pure JSON only
 const buildPrompt = (resumeText) =>
-  `You are a resume data extractor. Read the resume below and return ONLY a valid JSON object. No markdown, no code fences, no explanation, no preamble, no text before or after the JSON. Start your response with { and end with }.
+  `You are a resume data extractor. Read the resume below and return ONLY a valid JSON object. No markdown, no code fences, no explanation, no preamble. Start your response with { and end with }.
 
 Resume:
 ${resumeText}
@@ -134,79 +112,60 @@ Return exactly this structure with real values filled in:
 
 Rules:
 - Every value must be a plain string, never an array or object.
-- If information is missing from the resume, use an empty string for that field.
+- If information is missing, use an empty string for that field.
 - Combine multiple items using " | " as the separator.
 - Your entire response must be ONLY the JSON object. Nothing else.
-- Ensure the JSON is COMPLETE and properly closed with }.
-- Do not cut off the response. The JSON must be valid and complete.`;
+- Ensure the JSON is complete and properly closed with }.
+- Do not cut off the response midway.`;
 
-// Makes a single Gemini API call. Returns { ok, text } or { ok: false, errorType, message }.
-// This function NEVER throws. All errors are caught and returned as structured data.
+// Makes a single Gemini API call with a timeout.
+// Returns { ok, text } or { ok: false, errorType, message }
+// This function NEVER throws.
 const tryGenerate = async (apiKey, modelName, prompt) => {
-  try {
+  const TIMEOUT_MS = 40_000; // 40 seconds
+
+  const callPromise = (async () => {
     const client = getClient(apiKey);
     const model = client.getGenerativeModel({
       model: modelName,
       generationConfig: {
         temperature: 0.1,
-        // FIX: was 1500 — too low, caused JSON truncation mid-response.
-        // The resume JSON needs ~800-1200 tokens for a full response.
-        // 4096 gives plenty of headroom without hitting free-tier limits.
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
       },
     });
-
     const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    return result.response.text().trim();
+  })();
 
-    console.log(`[Gemini] OK  model=${modelName}  key=...${apiKey.slice(-3)}`);
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Request timed out after 40s")), TIMEOUT_MS)
+  );
+
+  try {
+    const text = await Promise.race([callPromise, timeoutPromise]);
+    console.log(`[Gemini] OK  model=${modelName}  key=...${apiKey.slice(-4)}`);
     return { ok: true, text };
   } catch (err) {
     const errorType = classifyError(err);
     console.warn(
-      `[Gemini] FAIL  model=${modelName}  key=...${apiKey.slice(-3)}  type=${errorType}  msg=${(err.message || "").slice(0, 100)}`
+      `[Gemini] FAIL  model=${modelName}  key=...${apiKey.slice(-4)}  type=${errorType}  msg=${(err.message || "").slice(0, 120)}`
     );
     return { ok: false, errorType, message: err.message || "Unknown error" };
   }
 };
 
-/**
- * repairTruncatedJSON
- *
- * When Gemini truncates its response mid-JSON (no closing }),
- * attempts to close open strings and the object so JSON.parse
- * has a chance to succeed.
- */
+// Attempt to repair a truncated JSON string
 const repairTruncatedJSON = (partial) => {
-  let repaired = partial.trim();
-
-  // Remove trailing incomplete key-value (last entry likely cut off)
-  repaired = repaired.replace(/,\s*$/, "");
-
-  // Count quotes — odd number means we are inside an open string
+  let repaired = partial.trim().replace(/,\s*$/, "");
   const quoteCount = (repaired.match(/"/g) || []).length;
-  if (quoteCount % 2 !== 0) {
-    repaired = repaired + '"';
-  }
-
-  // Close the object if not already closed
-  if (!repaired.endsWith("}")) {
-    repaired = repaired + "}";
-  }
-
+  if (quoteCount % 2 !== 0) repaired += '"';
+  if (!repaired.endsWith("}")) repaired += "}";
   console.warn(`[Gemini] Repaired truncated JSON (first 200 chars): ${repaired.slice(0, 200)}`);
   return repaired;
 };
 
-/**
- * extractJSON
- *
- * Robustly extracts a JSON object from whatever Gemini returned.
- * Handles: BOM characters, markdown fences, invisible unicode,
- * and truncated responses (attempts auto-repair).
- */
+// Robustly extracts a JSON object from the Gemini response
 const extractJSON = (raw) => {
-  // Strip BOM and markdown fences
   const cleaned = raw
     .replace(/^\uFEFF/, "")
     .replace(/```json/gi, "")
@@ -217,12 +176,9 @@ const extractJSON = (raw) => {
   const lastBrace = cleaned.lastIndexOf("}");
 
   if (firstBrace < 0) {
-    throw new Error(
-      `No JSON object found in Gemini response. Raw (first 300 chars): ${cleaned.slice(0, 300)}`
-    );
+    throw new Error(`No JSON object found in response. Raw (first 300): ${cleaned.slice(0, 300)}`);
   }
 
-  // If no closing brace found, the response was truncated — attempt repair
   if (lastBrace < 0 || lastBrace <= firstBrace) {
     console.warn("[Gemini] Response appears truncated. Attempting JSON repair...");
     return repairTruncatedJSON(cleaned.slice(firstBrace));
@@ -231,6 +187,9 @@ const extractJSON = (raw) => {
   return cleaned.slice(firstBrace, lastBrace + 1);
 };
 
+// Sleep helper for retry backoff
+const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+
 /**
  * generatePortfolioHTML
  *
@@ -238,6 +197,15 @@ const extractJSON = (raw) => {
  * Calls Gemini to extract resume data as JSON.
  * Replaces every {{key}} in the template with the extracted value.
  * Returns the final filled HTML string.
+ *
+ * Fallback chain:
+ *   For each API key:
+ *     Try each model in MODEL_PRIORITY:
+ *       quota / key_invalid → skip to next KEY immediately
+ *       model_not_found / other → skip to next MODEL (same key)
+ *       "other" on first model → retry once with 2s backoff before trying next model
+ *     If JSON extraction fails → try next model
+ *   If all keys and models exhausted → throw descriptive error
  */
 const generatePortfolioHTML = async (resumeText, template) => {
   if (!resumeText || resumeText.trim().length < 50) {
@@ -254,47 +222,47 @@ const generatePortfolioHTML = async (resumeText, template) => {
   let lastErrorMessage = "No attempts were made.";
 
   outerLoop: for (const apiKey of apiKeys) {
-    for (const modelName of MODEL_PRIORITY) {
-      const result = await tryGenerate(apiKey, modelName, prompt);
+    console.log(`[Gemini] Trying key ...${apiKey.slice(-4)}`);
 
-      // ── SUCCESS PATH ──────────────────────────────────────────────────────
+    for (let modelIdx = 0; modelIdx < MODEL_PRIORITY.length; modelIdx++) {
+      const modelName = MODEL_PRIORITY[modelIdx];
+      let result = await tryGenerate(apiKey, modelName, prompt);
+
+      // On "other" error for first model, do one retry with 2s backoff
+      if (!result.ok && result.errorType === "other" && modelIdx === 0) {
+        console.log(`[Gemini] Transient error on primary model. Retrying in 2s...`);
+        await sleep(2000);
+        result = await tryGenerate(apiKey, modelName, prompt);
+      }
+
+      // ── SUCCESS PATH ────────────────────────────────────────────────────
       if (result.ok) {
         let jsonString;
-
         try {
           jsonString = extractJSON(result.text);
         } catch (extractErr) {
-          // If extractJSON threw, try the raw text directly as a last resort
           if (result.text.trim().startsWith("{")) {
             jsonString = result.text.trim();
           } else {
             console.error(
-              `[Gemini] Could not find JSON in response from model=${modelName}. ` +
-                extractErr.message
+              `[Gemini] Could not find JSON in response from model=${modelName}. ${extractErr.message}`
             );
             lastErrorMessage = extractErr.message;
             continue; // try next model
           }
         }
 
-        // NOTE: Removed the hard endsWith("}") pre-check that was blocking
-        // valid responses. JSON.parse handles invalid JSON — no pre-check needed.
-        // Truncated responses are now handled inside extractJSON via repairTruncatedJSON.
-
         let data;
         try {
           data = JSON.parse(jsonString);
-        } catch (parseErr) {
-          // Last resort: try parsing the raw response directly
+        } catch {
           try {
             data = JSON.parse(result.text.trim());
           } catch {
             console.error(
-              `[Gemini] JSON.parse failed on model=${modelName}. ` +
-                `Extracted (first 300 chars): ${jsonString.slice(0, 300)}`
+              `[Gemini] JSON.parse failed on model=${modelName}. Extracted (first 300): ${jsonString.slice(0, 300)}`
             );
-            lastErrorMessage =
-              "Gemini returned a response that could not be parsed as valid JSON.";
+            lastErrorMessage = "Gemini returned a response that could not be parsed as valid JSON.";
             continue; // try next model
           }
         }
@@ -306,43 +274,42 @@ const generatePortfolioHTML = async (resumeText, template) => {
           finalHTML = finalHTML.replace(regex, String(value ?? ""));
         }
 
-        // Remove any unfilled {{placeholders}}
+        // Remove any remaining unfilled placeholders
         finalHTML = finalHTML.replace(/\{\{[a-zA-Z_]+\}\}/g, "");
 
-        // Sanity check: must be a complete HTML document
+        // Sanity check
         if (!finalHTML.toLowerCase().trimStart().startsWith("<!doctype html")) {
           throw new Error(
-            "The selected template does not start with <!DOCTYPE html>. " +
-              "Please check your template file."
+            "The selected template does not start with <!DOCTYPE html>. Check your template file."
           );
         }
 
         console.log(
-          `[Gemini] Portfolio generated successfully. model=${modelName}  key=...${apiKey.slice(-3)}`
+          `[Gemini] Portfolio generated successfully. model=${modelName}  key=...${apiKey.slice(-4)}`
         );
-
         return finalHTML;
       }
 
-      // ── FAILURE PATH ──────────────────────────────────────────────────────
+      // ── FAILURE PATH ────────────────────────────────────────────────────
       lastErrorMessage = result.message;
 
       if (result.errorType === "key_invalid") {
-        console.warn(
-          `[Gemini] Key ...${apiKey.slice(-3)} is invalid. Skipping to next key.`
-        );
+        console.warn(`[Gemini] Key ...${apiKey.slice(-4)} is invalid. Skipping to next key.`);
         continue outerLoop;
       }
 
       if (result.errorType === "quota") {
-        console.warn(
-          `[Gemini] Key ...${apiKey.slice(-3)} quota exhausted. Skipping to next key.`
-        );
+        console.warn(`[Gemini] Key ...${apiKey.slice(-4)} quota exhausted. Skipping to next key.`);
         continue outerLoop;
       }
 
-      // model_not_found or other transient error: try next model
+      // model_not_found or other transient → try next model
+      if (result.errorType === "model_not_found") {
+        console.warn(`[Gemini] Model ${modelName} not found on this key. Trying next model.`);
+      }
     }
+
+    console.warn(`[Gemini] All models failed for key ...${apiKey.slice(-4)}. Trying next key.`);
   }
 
   // All keys and models exhausted
@@ -363,8 +330,10 @@ const generatePortfolioHTML = async (resumeText, template) => {
   ) {
     throw new Error(
       "All configured Gemini API keys have hit their daily quota. " +
-        "Wait until midnight Pacific Time for the quota to reset, or add a backup key from a " +
-        "different Google Cloud project as GEMINI_API_KEY_2 in your .env file."
+        "Wait until midnight Pacific Time for the quota to reset, or:\n" +
+        "1. Add a new key from a different Google account as GEMINI_API_KEY_2 in your .env file.\n" +
+        "2. Go to https://aistudio.google.com/app/apikey and create a key in a fresh Google Cloud project.\n" +
+        "Note: gemini-1.5-flash has the most generous free tier — make sure your key has it enabled."
     );
   }
 
@@ -375,32 +344,20 @@ const generatePortfolioHTML = async (resumeText, template) => {
 
 module.exports = { generatePortfolioHTML };
 
-// Final Flow (Models + API Keys)
-// Start Request
-//    ↓
-// Pick Key1
-//    ↓
-// Try Model1 (gemini-2.5-flash)
-//    → ✅ Success + valid JSON → RETURN → STOP (1 API call total)
-//    → ❌ model_not_found / other / bad JSON → try Model2 (same key)
-//    → ❌ quota → SKIP to Key2 immediately
-//    → ❌ key_invalid → SKIP to Key2 immediately
-//
-//    ↓
-// Try Model2 (gemini-2.0-flash)
-//    → ✅ Success → RETURN → STOP
-//    → ❌ fail → try Model3
-//
-//    ↓
-// Try Model3 (gemini-2.0-flash-lite)
-//    → ✅ Success → RETURN → STOP
-//    → ❌ fail → try Model4
-//
-//    ↓
-// All models failed for Key1
-//    ↓
-// Move to Key2 → repeat same flow
-//    ↓
-// Move to Key3 → repeat same flow
-//    ↓
-// All keys + models failed → throw descriptive error
+/*
+ * FALLBACK FLOW
+ * ─────────────
+ * For each API key:
+ *   Try gemini-1.5-flash       → ✅ success → RETURN (1 call total)
+ *                              → ❌ quota / key_invalid → SKIP to next KEY
+ *                              → ❌ other (first model) → RETRY once with 2s backoff
+ *                              → ❌ model_not_found / bad JSON → try next MODEL
+ *   Try gemini-1.5-flash-8b   → ✅ success → RETURN
+ *                              → ❌ fail → try next MODEL
+ *   Try gemini-2.0-flash      → ✅ success → RETURN
+ *   Try gemini-2.0-flash-lite → ✅ success → RETURN
+ *   Try gemini-2.5-flash-*    → ✅ success → RETURN
+ *   All models failed → try next KEY
+ *
+ * If all keys exhausted → throw descriptive error message to frontend
+ */

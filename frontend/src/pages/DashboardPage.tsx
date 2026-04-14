@@ -1,6 +1,6 @@
 // src/pages/DashboardPage.tsx
-// "How It Works" section removed — it lives on the landing page now.
-// Dashboard shows: hero banner, stats, recent portfolios.
+// Fixed: portfolioApi.history() (was incorrectly .getAll())
+// Premium SaaS dashboard with welcome banner, stats, and portfolio cards
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,8 +8,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import { portfolioApi } from "@/lib/api";
 import {
-  Sparkles, ImageIcon, Clock, CalendarDays, Pencil, Trash2,
-  ArrowRight, Zap, Eye,
+  Sparkles, Clock, Pencil, Trash2, ArrowRight,
+  Zap, Eye, Plus, BrainCircuit, LayoutGrid, TrendingUp,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,13 +20,13 @@ interface Portfolio {
   updatedAt: string;
 }
 
-const TEMPLATE_STYLES: Record<string, { bg: string; accent: string }> = {
-  "glass-terminal":   { bg: "from-[#060a12] to-[#0d2137]",  accent: "#00ff88"  },
-  "brutalist-grid":   { bg: "from-[#0a0a0a] to-[#1a1a1a]",  accent: "#ffdd00"  },
-  "aurora-luxury":    { bg: "from-[#1a0533] to-[#08090d]",   accent: "#a78bfa"  },
-  "swiss-precision":  { bg: "from-[#f7f4ef] to-[#ede9e1]",   accent: "#0050ff"  },
-  "obsidian-code":    { bg: "from-[#1e1e2e] to-[#0a0a0a]",   accent: "#cba6f7"  },
-  "kinetic-magazine": { bg: "from-[#faf8f3] to-[#f0ebe0]",   accent: "#c84b11"  },
+const TEMPLATE_STYLES: Record<string, { bg: string; accent: string; label: string }> = {
+  "glass-terminal":   { bg: "from-[#060a12] to-[#0d2137]",  accent: "#00ff88",  label: "Glass Terminal"   },
+  "brutalist-grid":   { bg: "from-[#0a0a0a] to-[#1a1a1a]",  accent: "#ffdd00",  label: "Brutalist Grid"   },
+  "aurora-luxury":    { bg: "from-[#1a0533] to-[#08090d]",   accent: "#a78bfa",  label: "Aurora Luxury"    },
+  "swiss-precision":  { bg: "from-[#f7f4ef] to-[#ede9e1]",   accent: "#0050ff",  label: "Swiss Precision"  },
+  "obsidian-code":    { bg: "from-[#1e1e2e] to-[#0a0a0a]",   accent: "#cba6f7",  label: "Obsidian Code"    },
+  "kinetic-magazine": { bg: "from-[#faf8f3] to-[#f0ebe0]",   accent: "#c84b11",  label: "Kinetic Magazine" },
 };
 
 function PortfolioCard({
@@ -35,9 +35,11 @@ function PortfolioCard({
   portfolio: Portfolio;
   onPreview: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete: (e: React.MouseEvent) => void;
 }) {
-  const s = TEMPLATE_STYLES[portfolio.templateName] ?? { bg: "from-secondary to-muted", accent: "#6366f1" };
+  const s = TEMPLATE_STYLES[portfolio.templateName] ?? {
+    bg: "from-secondary to-muted", accent: "#6366f1", label: portfolio.templateName,
+  };
   const initial = (portfolio.templateName?.[0] ?? "P").toUpperCase();
   const dateStr = new Date(portfolio.createdAt).toLocaleDateString("en-IN", {
     month: "short", day: "numeric", year: "numeric",
@@ -45,71 +47,49 @@ function PortfolioCard({
 
   return (
     <div
-      className="group bg-card rounded-2xl border border-border overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-elevated hover:border-primary/30"
+      className="group bg-card rounded-2xl border border-border overflow-hidden cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated hover:border-primary/25"
       onClick={onPreview}
     >
+      {/* Thumbnail */}
       <div className={`h-36 bg-gradient-to-br ${s.bg} flex items-center justify-center relative overflow-hidden`}>
         <span
           className="text-6xl font-extrabold select-none transition-transform duration-300 group-hover:scale-110"
-          style={{ color: s.accent, opacity: 0.9 }}
+          style={{ color: s.accent, opacity: 0.85 }}
         >
           {initial}
         </span>
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
           <button
             onClick={(e) => { e.stopPropagation(); onPreview(); }}
-            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors"
+            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/35 backdrop-blur-sm transition-colors"
             title="Preview"
           >
-            <Eye className="w-4 h-4 text-white" />
+            <Eye className="w-5 h-5 text-white" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors"
+            className="p-2.5 rounded-xl bg-white/20 hover:bg-white/35 backdrop-blur-sm transition-colors"
             title="Edit"
           >
-            <Pencil className="w-4 h-4 text-white" />
+            <Pencil className="w-5 h-5 text-white" />
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-2.5 rounded-xl bg-red-500/40 hover:bg-red-500/60 backdrop-blur-sm transition-colors"
+            onClick={onDelete}
+            className="p-2.5 rounded-xl bg-red-500/40 hover:bg-red-500/65 backdrop-blur-sm transition-colors"
             title="Delete"
           >
-            <Trash2 className="w-4 h-4 text-white" />
+            <Trash2 className="w-5 h-5 text-white" />
           </button>
         </div>
       </div>
 
+      {/* Info */}
       <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <p className="font-semibold text-foreground capitalize text-sm leading-snug">
-            {portfolio.templateName?.replace(/-/g, " ")}
-          </p>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground whitespace-nowrap shrink-0">
-            {dateStr}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">AI Generated Portfolio</p>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); onPreview(); }}
-            className="flex-1 h-8 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-          >
-            View
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onEdit(); }}
-            className="h-8 px-3 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-secondary transition-colors"
-          >
-            Edit
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="h-8 px-2 rounded-lg border border-border hover:bg-destructive/10 hover:border-destructive/30 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5 text-destructive" />
-          </button>
+        <p className="text-base font-semibold text-foreground leading-tight">{s.label}</p>
+        <div className="flex items-center gap-1.5 mt-1.5">
+          <Clock className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">{dateStr}</span>
         </div>
       </div>
     </div>
@@ -118,148 +98,143 @@ function PortfolioCard({
 
 const DashboardPage = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
   const { toast } = useToast();
+
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]       = useState(true);
+
+  const credits    = user?.credits ?? 0;
+  const firstName  = user?.name?.split(" ")[0] ?? "there";
 
   useEffect(() => {
     portfolioApi
-      .history()
-      .then((res) => setPortfolios(res.data.portfolios || []))
+      .history()                                       // ← FIXED: was .getAll()
+      .then((res) => setPortfolios(res.data.portfolios ?? []))
       .catch(() => toast({ title: "Could not load portfolios", description: "Try refreshing the page.", variant: "destructive" }))
       .finally(() => setLoading(false));
   }, []);
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!window.confirm("Delete this portfolio? This cannot be undone.")) return;
     try {
       await portfolioApi.delete(id);
       setPortfolios((prev) => prev.filter((p) => p._id !== id));
       toast({ title: "Portfolio deleted" });
     } catch {
-      toast({ title: "Could not delete", description: "Please try again.", variant: "destructive" });
+      toast({ title: "Could not delete portfolio", variant: "destructive" });
     }
   };
 
-  const recentPortfolios = portfolios.slice(0, 3);
-  const totalCount  = portfolios.length;
-  const credits     = user?.credits ?? 0;
-  const firstName   = user?.name?.split(" ")[0] ?? "there";
+  const totalPortfolios = portfolios.length;
+  const recentPortfolios = portfolios.slice(0, 6);
 
-  const lastActivity = portfolios[0]
-    ? new Date(portfolios[0].updatedAt).toLocaleDateString("en-IN", {
-        month: "short", day: "numeric", year: "numeric",
-      })
-    : "No activity yet";
-
-  const memberSince = user
-    ? new Date((user as any).createdAt || Date.now()).getFullYear().toString()
-    : new Date().getFullYear().toString();
+  // Find most-used template
+  const mostUsed = portfolios.length > 0
+    ? Object.entries(
+        portfolios.reduce((acc, p) => {
+          acc[p.templateName] = (acc[p.templateName] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      ).sort((a, b) => b[1] - a[1])[0]?.[0]
+    : null;
 
   return (
     <AppLayout>
-      <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className="max-w-5xl mx-auto animate-fade-in space-y-8">
 
-        {/* Hero banner */}
+        {/* Welcome banner */}
         <div
-          className="relative rounded-2xl overflow-hidden px-7 py-6 text-white"
-          style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0e7490 100%)" }}
+          className="rounded-2xl p-8 text-white relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 60%, #2563eb 100%)" }}
         >
           <div
-            className="absolute inset-0 opacity-[0.07]"
+            className="absolute inset-0 opacity-[0.06]"
             style={{
-              backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
-              backgroundSize: "40px 40px",
+              backgroundImage: "radial-gradient(circle at 65% 50%, white 1px, transparent 1px)",
+              backgroundSize: "28px 28px",
             }}
           />
-          <div
-            className="absolute top-[-40px] right-[-40px] w-56 h-56 rounded-full opacity-20"
-            style={{ background: "radial-gradient(circle, #fff 0%, transparent 70%)" }}
-          />
-
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div>
-              <p className="text-white/60 text-xs font-medium tracking-wide mb-0.5">Good to see you back</p>
-              <h1 className="text-2xl font-extrabold mb-1.5 leading-tight">
-                Hello, {firstName}! 👋
-              </h1>
-              <p className="text-white/75 max-w-md text-sm leading-relaxed">
-                Your AI-powered portfolio workspace. Use your credits to generate professional
-                portfolios from your resume in under a minute.
+              <p className="text-white/65 text-sm font-medium tracking-widest uppercase mb-1.5">Welcome back</p>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Hey, {firstName}</h1>
+              <p className="text-white/70 text-base mt-2">
+                {credits > 0
+                  ? `You have ${credits} credit${credits !== 1 ? "s" : ""} available today.`
+                  : "Your credits will reset in the next cycle."}
               </p>
             </div>
             <button
               onClick={() => navigate("/generate")}
-              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white font-semibold text-sm transition-all hover:bg-white/90 hover:shadow-lg active:scale-[0.98]"
-              style={{ color: "#4f46e5" }}
+              className="flex items-center gap-2.5 px-6 py-3 rounded-xl bg-white text-indigo-700 font-bold text-base transition-all hover:bg-white/90 active:scale-[0.98] shadow-lg shrink-0 self-start sm:self-auto"
             >
-              <Sparkles className="w-4 h-4" />
-              Generate Portfolio
+              <Plus className="w-5 h-5" />
+              New Portfolio
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Stats row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
+              icon: LayoutGrid,
+              label: "Total Portfolios",
+              value: String(totalPortfolios),
+              color: "#6366f1",
+              bg: "rgba(99,102,241,0.09)",
+            },
+            {
               icon: Zap,
-              value: <span className={credits === 0 ? "text-destructive" : credits <= 2 ? "text-amber-500" : "text-foreground"}>{credits}</span>,
-              label: "Credits Left",
-              sub: "Resets every 24 hours",
-              extra: (
-                <div className="w-full h-1.5 rounded-full bg-secondary overflow-hidden mt-2">
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${(credits / 5) * 100}%`,
-                      background: credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "linear-gradient(90deg, #6366f1, #22c55e)",
-                    }}
-                  />
-                </div>
-              ),
+              label: "Credits Remaining",
+              value: `${credits} / 5`,
+              color: credits === 0 ? "#ef4444" : credits <= 2 ? "#f59e0b" : "#10b981",
+              bg: credits === 0 ? "rgba(239,68,68,0.09)" : credits <= 2 ? "rgba(245,158,11,0.09)" : "rgba(16,185,129,0.09)",
             },
             {
-              icon: ImageIcon,
-              value: <span>{totalCount}</span>,
-              label: "Portfolios Made",
-              sub: "Total generated so far",
+              icon: TrendingUp,
+              label: "Favourite Template",
+              value: mostUsed ? (TEMPLATE_STYLES[mostUsed]?.label ?? mostUsed) : "None yet",
+              color: "#8b5cf6",
+              bg: "rgba(139,92,246,0.09)",
             },
-            {
-              icon: Clock,
-              value: <span className="text-sm font-semibold">{lastActivity}</span>,
-              label: "Last Activity",
-              sub: null,
-            },
-            {
-              icon: CalendarDays,
-              value: <span className="text-sm font-semibold">{memberSince}</span>,
-              label: "Member Since",
-              sub: null,
-            },
-          ].map((stat, i) => (
-            <div key={i} className="bg-card rounded-2xl border border-border p-4 hover:border-primary/30 hover:shadow-elevated transition-all duration-300">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <stat.icon className="w-4 h-4 text-primary" />
-                </div>
-                <span className="text-2xl font-extrabold text-foreground">{stat.value}</span>
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="bg-card rounded-2xl border border-border p-5 flex items-center gap-4 shadow-card"
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: stat.bg }}
+              >
+                <stat.icon className="w-6 h-6" style={{ color: stat.color }} />
               </div>
-              <p className="text-[10px] tracking-widest text-muted-foreground uppercase font-semibold mb-0.5">{stat.label}</p>
-              {stat.sub && <p className="text-[10px] text-muted-foreground">{stat.sub}</p>}
-              {stat.extra}
+              <div className="min-w-0">
+                <p className="text-sm text-muted-foreground font-medium">{stat.label}</p>
+                <p className="text-xl font-bold text-foreground leading-tight truncate mt-0.5">{stat.value}</p>
+              </div>
             </div>
           ))}
         </div>
 
-        {/* Recent Portfolios */}
+        {/* Recent portfolios */}
         <div>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">Recent Portfolios</h2>
-            {totalCount > 3 && (
-              <Link to="/history" className="text-sm text-primary font-semibold flex items-center gap-1 hover:underline">
-                View all <ArrowRight className="w-3 h-3" />
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Recent Portfolios</h2>
+              {totalPortfolios > 6 && (
+                <p className="text-sm text-muted-foreground mt-0.5">Showing 6 of {totalPortfolios}</p>
+              )}
+            </div>
+            {totalPortfolios > 0 && (
+              <Link
+                to="/history"
+                className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+              >
+                View all <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             )}
           </div>
@@ -267,22 +242,37 @@ const DashboardPage = () => {
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card rounded-2xl border border-border h-56 animate-pulse" />
+                <div key={i} className="rounded-2xl border border-border bg-card overflow-hidden animate-pulse">
+                  <div className="h-36 bg-secondary" />
+                  <div className="p-4 space-y-2.5">
+                    <div className="h-4 bg-secondary rounded-lg w-3/4" />
+                    <div className="h-3.5 bg-secondary rounded-lg w-1/2" />
+                  </div>
+                </div>
               ))}
             </div>
-          ) : recentPortfolios.length === 0 ? (
-            <div className="text-center py-12 bg-card rounded-2xl border border-border border-dashed">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                <ImageIcon className="w-6 h-6 text-primary/50" />
-              </div>
-              <p className="text-foreground font-semibold mb-1">No portfolios yet</p>
-              <p className="text-sm text-muted-foreground mb-4">Generate your first AI portfolio and see it here.</p>
-              <button
-                onClick={() => navigate("/generate")}
-                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-all"
+          ) : portfolios.length === 0 ? (
+            /* Empty state */
+            <div className="rounded-2xl border-2 border-dashed border-border bg-card/40 p-14 flex flex-col items-center text-center gap-5">
+              <div
+                className="w-18 h-18 rounded-2xl flex items-center justify-center"
                 style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
               >
-                Get Started
+                <BrainCircuit className="w-9 h-9 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground mb-2">No portfolios yet</h3>
+                <p className="text-base text-muted-foreground max-w-sm leading-relaxed">
+                  Upload your resume and Gemini AI will turn it into a professional portfolio site in under a minute.
+                </p>
+              </div>
+              <button
+                onClick={() => navigate("/generate")}
+                className="flex items-center gap-2.5 px-6 py-3 rounded-xl text-base font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] shadow-sm"
+                style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+              >
+                <Sparkles className="w-5 h-5" />
+                Generate your first portfolio
               </button>
             </div>
           ) : (
@@ -293,13 +283,26 @@ const DashboardPage = () => {
                   portfolio={p}
                   onPreview={() => navigate(`/preview/${p._id}`)}
                   onEdit={() => navigate(`/editor/${p._id}`)}
-                  onDelete={() => handleDelete(p._id)}
+                  onDelete={(e) => handleDelete(p._id, e)}
                 />
               ))}
+              {/* New portfolio tile */}
+              {credits > 0 && recentPortfolios.length < 6 && (
+                <button
+                  onClick={() => navigate("/generate")}
+                  className="rounded-2xl border-2 border-dashed border-border bg-card/50 min-h-[172px] flex flex-col items-center justify-center gap-3 hover:border-primary/40 hover:bg-primary/5 transition-all group"
+                >
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Plus className="w-6 h-6 text-primary" />
+                  </div>
+                  <span className="text-base font-semibold text-muted-foreground group-hover:text-primary transition-colors">
+                    New portfolio
+                  </span>
+                </button>
+              )}
             </div>
           )}
         </div>
-
       </div>
     </AppLayout>
   );

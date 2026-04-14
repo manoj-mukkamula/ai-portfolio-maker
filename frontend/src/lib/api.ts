@@ -1,6 +1,4 @@
 // src/lib/api.ts
-// Added: authApi.deleteAccount for the settings page account deletion flow
-
 import axios from "axios";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -47,11 +45,13 @@ export const portfolioApi = {
     }
     return api.post("/portfolio/generate", data);
   },
+  // history() is the canonical method — getAll() is an alias for safety
   history: () => api.get("/portfolio/history"),
-  getOne: (id: string) => api.get(`/portfolio/${id}`),
-  update: (id: string, data: { html?: string; templateName?: string }) =>
+  getAll:  () => api.get("/portfolio/history"),
+  getOne:  (id: string) => api.get(`/portfolio/${id}`),
+  update:  (id: string, data: { html?: string; templateName?: string }) =>
     api.put(`/portfolio/${id}`, data),
-  delete: (id: string) => api.delete(`/portfolio/${id}`),
+  delete:  (id: string) => api.delete(`/portfolio/${id}`),
 };
 
 export default api;
