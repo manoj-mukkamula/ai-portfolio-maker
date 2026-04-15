@@ -23,7 +23,7 @@ const FEATURES = [
   },
   {
     icon: Palette,
-    title: "6 premium templates",
+    title: "7 premium templates",
     desc: "Hand-crafted templates across minimal, dark, editorial, and luxury design styles. Pick the one that fits your vibe.",
     color: "#8b5cf6",
   },
@@ -61,8 +61,8 @@ const HOW_IT_WORKS = [
     icon: Palette,
     color: "#8b5cf6",
     title: "Choose a template",
-    desc: "Browse 6 professionally designed styles, each with a live preview so you know exactly what you are getting.",
-    detail: "6 templates · Live preview",
+    desc: "Browse 7 professionally designed styles, each with a live preview so you know exactly what you are getting.",
+    detail: "7 templates · Live preview",
   },
   {
     step: 3,

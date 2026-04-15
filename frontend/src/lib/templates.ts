@@ -1249,4 +1249,313 @@ export const TEMPLATES = [
 </html>
 `,
   },
+  {
+    id: "deep-dark-minimal",
+    name: "Deep Dark Minimal",
+    style: "Dark Recruiter",
+    premium: false,
+    template: `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{name}} — Portfolio</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #090910; --bg-2: #0f0f1a; --bg-3: #16162a; --bg-card: #111120;
+    --border: #1e1e35; --border-2: #2a2a45;
+    --accent: #4f8ef7; --accent-light: rgba(79,142,247,0.12); --accent-hover: #6aa0ff;
+    --text: #eeeef8; --text-2: #9090b8; --text-3: #555575;
+    --radius: 14px; --radius-sm: 8px;
+    --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94); --speed: 0.22s;
+  }
+  html { scroll-behavior: smooth; scroll-padding-top: 70px; }
+  body { background: var(--bg); color: var(--text); font-family: 'Poppins', sans-serif; font-size: 15px; line-height: 1.7; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  a { text-decoration: none; color: inherit; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+  /* Navbar */
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(9,9,16,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+  .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; height: 64px; display: flex; align-items: center; justify-content: space-between; }
+  .nav-logo { font-family: 'Montserrat', sans-serif; font-size: 1.4rem; font-weight: 900; color: var(--text); letter-spacing: -1px; }
+  .nav-logo span { color: var(--accent); }
+  .nav-links { display: flex; align-items: center; gap: 0.25rem; list-style: none; }
+  .nav-link { padding: 0.45rem 0.9rem; font-size: 0.85rem; font-weight: 500; color: var(--text-2); border-radius: 6px; transition: color var(--speed), background var(--speed); }
+  .nav-link:hover { color: var(--text); background: var(--accent-light); }
+  .hamburger { display: none; flex-direction: column; gap: 5px; background: none; border: none; cursor: pointer; padding: 0.4rem; }
+  .hamburger span { display: block; width: 22px; height: 2px; background: var(--text-2); border-radius: 2px; transition: all 0.3s; }
+
+  /* Hero */
+  .hero { position: relative; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; overflow: hidden; padding-top: 64px; }
+  .hero-bg { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.16; }
+  .blob-1 { width: 500px; height: 500px; background: var(--accent); top: -80px; right: -80px; animation: blobFloat 8s ease-in-out infinite; }
+  .blob-2 { width: 360px; height: 360px; background: #7c3aed; bottom: 60px; left: -80px; animation: blobFloat 10s ease-in-out infinite reverse; }
+  @keyframes blobFloat { 0%, 100% { transform: translate(0,0) scale(1); } 50% { transform: translate(30px,-30px) scale(1.05); } }
+  .grid-overlay { position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 60px 60px; opacity: 0.22; mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%); }
+  .hero-inner { position: relative; z-index: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 0 2rem; display: flex; flex-direction: column; align-items: center; text-align: center; min-height: calc(100vh - 64px); justify-content: center; }
+  .hero-content { animation: fadeUp 0.8s var(--ease) both; max-width: 700px; }
+  .hero-greeting { font-size: 1rem; font-weight: 500; color: var(--text-2); margin-bottom: 0.75rem; }
+  .hero-name { font-family: 'Montserrat', sans-serif; font-size: clamp(2.6rem, 6vw, 4.8rem); font-weight: 900; line-height: 1.05; letter-spacing: -2px; color: var(--text); margin-bottom: 1.25rem; }
+  .hero-name em { font-style: normal; color: var(--accent); }
+  .hero-tagline { font-size: 0.97rem; color: var(--text-2); line-height: 1.8; margin-bottom: 2rem; }
+  .hero-actions { display: flex; gap: 0.85rem; flex-wrap: wrap; margin-bottom: 2.5rem; justify-content: center; }
+  .btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.6rem; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all var(--speed) var(--ease); border: none; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(79,142,247,0.35); }
+  .btn-outline { background: transparent; color: var(--text); border: 1.5px solid var(--border-2); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .hero-socials { display: flex; gap: 0.85rem; justify-content: center; }
+  .hero-socials a { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--border-2); border-radius: 8px; color: var(--text-2); font-size: 1rem; transition: all var(--speed); }
+  .hero-socials a:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); transform: translateY(-3px); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Sections */
+  .section { padding: 5rem 0; }
+  .section-alt { background: var(--bg-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .section-label { font-size: 0.72rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 0.6rem; }
+  .section-title { font-family: 'Montserrat', sans-serif; font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; letter-spacing: -1px; color: var(--text); margin-bottom: 2.5rem; }
+  .section-title em { font-style: normal; color: var(--accent); }
+
+  /* About */
+  .about-text { max-width: 720px; }
+  .about-text p { color: var(--text-2); margin-bottom: 0.9rem; font-size: 0.95rem; }
+
+  /* Skills */
+  .skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; }
+  .skill-category { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: border-color var(--speed); }
+  .skill-category:hover { border-color: var(--border-2); }
+  .skill-cat-title { font-family: 'Montserrat', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; }
+  .skill-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .skill-tag { padding: 0.3rem 0.75rem; background: var(--bg-3); border: 1px solid var(--border); border-radius: 20px; font-size: 0.78rem; font-weight: 500; color: var(--text-2); }
+
+  /* Projects */
+  .projects-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 1.25rem; }
+  .project-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; display: flex; flex-direction: column; gap: 0.7rem; transition: transform var(--speed), border-color var(--speed), box-shadow var(--speed); }
+  .project-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 12px 40px rgba(79,142,247,0.1); }
+  .project-name { font-family: 'Montserrat', sans-serif; font-size: 1rem; font-weight: 700; color: var(--text); }
+  .project-desc { font-size: 0.82rem; color: var(--text-2); line-height: 1.65; flex: 1; }
+  .project-tech { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+  .project-tech span { font-size: 0.68rem; font-weight: 600; padding: 0.2rem 0.6rem; background: var(--bg-3); border: 1px solid var(--border); border-radius: 4px; color: var(--text-3); }
+  .project-links { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+  .project-links a { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.48rem 1rem; border-radius: 7px; font-size: 0.77rem; font-weight: 600; border: 1.5px solid var(--border-2); color: var(--text-2); transition: all var(--speed); }
+  .project-links a:hover { color: var(--text); background: var(--bg-3); }
+  .project-links a.primary-link { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .project-links a.primary-link:hover { background: var(--accent-hover); }
+
+  /* Education */
+  .edu-list { display: flex; flex-direction: column; gap: 1rem; max-width: 720px; }
+  .edu-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+  .edu-title { font-family: 'Montserrat', sans-serif; font-size: 0.95rem; font-weight: 700; color: var(--text); }
+  .edu-detail { font-size: 0.85rem; color: var(--text-2); margin-top: 0.3rem; }
+
+  /* Contact */
+  .contact-intro { font-size: 0.95rem; color: var(--text-2); margin-bottom: 2rem; max-width: 540px; }
+  .contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; }
+  .contact-card { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); transition: all var(--speed); }
+  .contact-card:hover { border-color: var(--accent); background: var(--accent-light); transform: translateY(-3px); }
+  .contact-icon { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; background: var(--accent-light); border-radius: 8px; flex-shrink: 0; color: var(--accent); font-size: 1.1rem; }
+  .contact-label { font-size: 0.85rem; font-weight: 600; }
+  .contact-value { font-size: 0.78rem; color: var(--text-2); }
+
+  /* Footer */
+  .footer { padding: 1.75rem 0; border-top: 1px solid var(--border); text-align: center; }
+  .footer p { font-size: 0.82rem; color: var(--text-3); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .nav-links { display: none; position: absolute; top: 64px; left: 0; right: 0; background: rgba(9,9,16,0.97); border-bottom: 1px solid var(--border); flex-direction: column; padding: 1rem; gap: 0.25rem; }
+    .nav-links.open { display: flex; }
+    .hamburger { display: flex; }
+    .hero-inner { padding: 2rem 1.25rem 5rem; min-height: auto; }
+    .hero-name { font-size: 2.6rem; }
+    .section { padding: 4rem 0; }
+    .container { padding: 0 1.25rem; }
+    .projects-grid { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .hero-name { font-size: 2.2rem; }
+    .hero-actions { flex-direction: column; align-items: center; }
+    .btn { width: 100%; justify-content: center; }
+  }
+</style>
+</head>
+<body>
+  <nav id="navbar">
+    <div class="nav-inner">
+      <a href="#home" class="nav-logo">{{name}}<span>.</span></a>
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#home" class="nav-link">Home</a></li>
+        <li><a href="#about" class="nav-link">About</a></li>
+        <li><a href="#skills" class="nav-link">Skills</a></li>
+        <li><a href="#projects" class="nav-link">Projects</a></li>
+        <li><a href="#education" class="nav-link">Education</a></li>
+        <li><a href="#contact" class="nav-link">Contact</a></li>
+      </ul>
+      <button class="hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero" id="home">
+    <div class="hero-bg">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="grid-overlay"></div>
+    </div>
+    <div class="hero-inner">
+      <div class="hero-content">
+        <p class="hero-greeting">Hello, I'm</p>
+        <h1 class="hero-name"><em>{{name}}</em></h1>
+        <p class="hero-tagline">{{title}}<br>{{summary}}</p>
+        <div class="hero-actions">
+          <a href="#projects" class="btn btn-primary">View Projects</a>
+          <a href="#contact" class="btn btn-outline">Contact Me</a>
+        </div>
+        <div class="hero-socials">
+          <a href="{{github}}" target="_blank" rel="noopener" aria-label="GitHub">GH</a>
+          <a href="{{linkedin}}" target="_blank" rel="noopener" aria-label="LinkedIn">LI</a>
+          <a href="mailto:{{email}}" aria-label="Email">@</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section class="section" id="about">
+    <div class="container">
+      <div class="section-label">01 / About</div>
+      <h2 class="section-title">About <em>Me</em></h2>
+      <div class="about-text">
+        <p>{{summary}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Skills -->
+  <section class="section section-alt" id="skills">
+    <div class="container">
+      <div class="section-label">02 / Skills</div>
+      <h2 class="section-title">Technical <em>Skills</em></h2>
+      <div class="skills-grid" id="skills-container"></div>
+    </div>
+  </section>
+
+  <!-- Projects -->
+  <section class="section" id="projects">
+    <div class="container">
+      <div class="section-label">03 / Projects</div>
+      <h2 class="section-title">My <em>Projects</em></h2>
+      <div class="projects-grid" id="projects-container"></div>
+    </div>
+  </section>
+
+  <!-- Education -->
+  <section class="section section-alt" id="education">
+    <div class="container">
+      <div class="section-label">04 / Education</div>
+      <h2 class="section-title">Education</h2>
+      <div class="edu-list" id="education-container"></div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="section" id="contact">
+    <div class="container">
+      <div class="section-label">05 / Contact</div>
+      <h2 class="section-title">Get In <em>Touch</em></h2>
+      <p class="contact-intro">I'm open to opportunities and collaborations. Feel free to reach out.</p>
+      <div class="contact-grid">
+        <a href="mailto:{{email}}" class="contact-card">
+          <div class="contact-icon">@</div>
+          <div><div class="contact-label">Email</div><div class="contact-value">{{email}}</div></div>
+        </a>
+        <a href="{{linkedin}}" target="_blank" class="contact-card">
+          <div class="contact-icon">in</div>
+          <div><div class="contact-label">LinkedIn</div><div class="contact-value">{{linkedin}}</div></div>
+        </a>
+        <a href="{{github}}" target="_blank" class="contact-card">
+          <div class="contact-icon">&lt;/&gt;</div>
+          <div><div class="contact-label">GitHub</div><div class="contact-value">{{github}}</div></div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container">
+      <p>Designed and built by {{name}}</p>
+    </div>
+  </footer>
+
+  <script>
+    // Navbar scroll shadow
+    var navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', function() {
+      navbar.style.boxShadow = window.scrollY > 30 ? '0 4px 30px rgba(0,0,0,0.4)' : 'none';
+    });
+
+    // Hamburger toggle
+    var hamburger = document.getElementById('hamburger');
+    var navLinks = document.getElementById('nav-links');
+    hamburger.addEventListener('click', function() {
+      navLinks.classList.toggle('open');
+    });
+    navLinks.querySelectorAll('.nav-link').forEach(function(link) {
+      link.addEventListener('click', function() { navLinks.classList.remove('open'); });
+    });
+
+    // Render skills
+    (function() {
+      var skills = "{{skills}}".split(",").map(function(s) { return s.trim(); }).filter(Boolean);
+      var container = document.getElementById('skills-container');
+      if (skills.length > 0) {
+        var card = document.createElement('div');
+        card.className = 'skill-category';
+        card.innerHTML = '<div class="skill-cat-title">Skills</div><div class="skill-tags">' +
+          skills.map(function(s) { return '<span class="skill-tag">' + s + '</span>'; }).join('') + '</div>';
+        container.appendChild(card);
+      }
+    })();
+
+    // Render projects
+    (function() {
+      var entries = "{{projects}}".split("|").map(function(s) { return s.trim(); }).filter(Boolean);
+      var container = document.getElementById('projects-container');
+      entries.forEach(function(entry) {
+        var parts = entry.split(" - ");
+        var title = parts[0] || entry;
+        var desc = parts.slice(1).join(" - ") || "";
+        var card = document.createElement('div');
+        card.className = 'project-card';
+        card.innerHTML = '<div class="project-name">' + title + '</div>' +
+          (desc ? '<div class="project-desc">' + desc + '</div>' : '');
+        container.appendChild(card);
+      });
+    })();
+
+    // Render education
+    (function() {
+      var entries = "{{education}}".split("|").map(function(s) { return s.trim(); }).filter(Boolean);
+      var container = document.getElementById('education-container');
+      entries.forEach(function(entry) {
+        var parts = entry.split(" - ");
+        var title = parts[0] || entry;
+        var detail = parts.slice(1).join(" - ") || "";
+        var item = document.createElement('div');
+        item.className = 'edu-item';
+        item.innerHTML = '<div class="edu-title">' + title + '</div>' +
+          (detail ? '<div class="edu-detail">' + detail + '</div>' : '');
+        container.appendChild(item);
+      });
+    })();
+  </script>
+</body>
+</html>
+`,
+  },
 ];

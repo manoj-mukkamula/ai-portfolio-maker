@@ -26,6 +26,7 @@ const TEMPLATE_META: Record<string, { bg: string; color: string; label: string }
   "swiss-precision":  { bg: "#f7f4ef", color: "#0050ff", label: "Swiss Precision"  },
   "obsidian-code":    { bg: "#1e1e2e", color: "#cba6f7", label: "Obsidian Code"    },
   "kinetic-magazine": { bg: "#faf8f3", color: "#c84b11", label: "Kinetic Magazine" },
+  "deep-dark-minimal": { bg: "#090910", color: "#4f8ef7", label: "Deep Dark Minimal" },
 };
 
 type Filter = "all" | "recent" | "starred";

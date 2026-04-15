@@ -27,6 +27,7 @@ const TEMPLATE_STYLES: Record<string, { bg: string; accent: string; label: strin
   "swiss-precision":  { bg: "from-[#f7f4ef] to-[#ede9e1]",   accent: "#0050ff",  label: "Swiss Precision"  },
   "obsidian-code":    { bg: "from-[#1e1e2e] to-[#0a0a0a]",   accent: "#cba6f7",  label: "Obsidian Code"    },
   "kinetic-magazine": { bg: "from-[#faf8f3] to-[#f0ebe0]",   accent: "#c84b11",  label: "Kinetic Magazine" },
+  "deep-dark-minimal": { bg: "from-[#090910] to-[#0f0f1a]", accent: "#4f8ef7",  label: "Deep Dark Minimal" },
 };
 
 function PortfolioCard({
