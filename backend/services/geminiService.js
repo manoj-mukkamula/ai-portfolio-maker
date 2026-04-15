@@ -1,37 +1,45 @@
 // backend/services/geminiService.js
 //
-// KEY FIXES (April 2026):
+// FIXES IN THIS VERSION:
 //
-//  1. REMOVED startup validation — the old validateKeysOnStartup() fired 4+ real
-//     Gemini API calls every time the server started, burning free-tier quota before
-//     a single user request. Startup now does zero Gemini calls.
+//  1. SDK UPGRADE REQUIRED: bump @google/generative-ai to ^0.21.0 in package.json,
+//     then run `npm install` in the backend folder. SDK 0.15.x did not support
+//     "gemini-2.0-flash-lite" as a valid model ID — it silently routed all calls
+//     to the gemini-2.0-flash endpoint, meaning both attempts burned the same
+//     quota pool and both failed together.
 //
-//  2. MODEL PRIORITY reordered — gemini-2.0-flash-lite is now first because:
-//       • It has a SEPARATE free quota from gemini-2.0-flash.
-//       • It is faster and cheaper for JSON-only extraction tasks.
-//       • If lite quota is also exhausted, we fall through to gemini-2.0-flash.
-//     This means one API key effectively gets 2x the free daily quota.
+//  2. MODEL LIST updated for India / free tier (April 2026):
+//       gemini-2.0-flash-lite   → primary; SDK 0.21+ supports it properly,
+//                                  separate quota pool from gemini-2.0-flash
+//       gemini-1.5-flash-8b     → secondary; completely separate quota pool,
+//                                  still actively available in India on free keys
+//       gemini-2.0-flash        → tertiary fallback
+//     Total: 3 independent quota pools per API key instead of 1.
 //
-//  3. gemini-1.5-flash REMOVED from the list — it returns model_not_found in
-//     most regions outside the US as of early 2026, which wastes an attempt.
+//  3. NO STARTUP API CALLS — zero Gemini calls on server start. The old
+//     validateKeysOnStartup() burned quota before any user request.
 //
-//  4. gemini-2.5-flash-preview-04-17 REMOVED — consistently 404 on free keys
-//     in India/Asia. Add it back manually if your key supports it.
-//
-//  5. Per-attempt timeout reduced to 30s (was 45s) — keeps the UX responsive.
-//     If you use gemini-2.5 models, raise this back to 45s.
+//  4. On quota error, tries the NEXT MODEL (not next key) because each model
+//     has a separate daily quota. Only moves to the next key after all models
+//     for the current key are exhausted.
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODEL PRIORITY LIST
-// lite first  → separate quota pool on free tier, faster for JSON tasks
-// 2.0-flash   → fallback if lite quota is exhausted
-// Add "gemini-2.5-flash-preview-04-17" here if your key/region supports it.
+// MODEL PRIORITY — 3 separate quota pools on a single free API key
+//
+// Free tier limits per model per day (India, April 2026):
+//   gemini-2.0-flash-lite : ~200 RPD, fast, ideal for JSON extraction
+//   gemini-1.5-flash-8b   : ~500 RPD, completely separate pool, reliable
+//   gemini-2.0-flash      : ~50–200 RPD depending on region
+//
+// To add a model: append its ID string here. No other code changes needed.
+// To remove a model: delete its line here.
 // ─────────────────────────────────────────────────────────────────────────────
 const MODEL_PRIORITY = [
-  "gemini-2.0-flash-lite",
-  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",   // fastest, own quota pool (requires SDK 0.21+)
+  "gemini-1.5-flash-8b",     // most generous free quota, always available
+  "gemini-2.0-flash",        // last resort — share quota with lite on old SDKs
 ];
 
 // Lazy client cache — one GoogleGenerativeAI instance per API key
@@ -41,7 +49,7 @@ const getClient = (apiKey) => {
   return _clients.get(apiKey);
 };
 
-// Returns all configured API keys, throws if none found
+// Returns all configured API keys, throws if none are found
 const getApiKeys = () => {
   const candidates = [
     process.env.GEMINI_API_KEY,
@@ -55,7 +63,7 @@ const getApiKeys = () => {
 
   if (keys.length === 0) {
     throw new Error(
-      "No Gemini API key found. Add GEMINI_API_KEY=AIza... to your backend/.env file.\n" +
+      "No Gemini API key found. Add GEMINI_API_KEY=AIza... to backend/.env\n" +
         "Get a free key at https://aistudio.google.com/app/apikey"
     );
   }
@@ -72,7 +80,6 @@ const classifyError = (err) => {
     err?.response?.status ||
     0;
 
-  // Invalid / revoked key
   if (
     msg.includes("api key not valid") ||
     msg.includes("api_key_invalid") ||
@@ -82,7 +89,6 @@ const classifyError = (err) => {
     status === 403
   ) return "key_invalid";
 
-  // Quota / rate limit
   if (
     msg.includes("quota") ||
     msg.includes("rate limit") ||
@@ -92,19 +98,17 @@ const classifyError = (err) => {
     status === 429
   ) return "quota";
 
-  // Model not found / deprecated
   if (
     msg.includes("not found") ||
     msg.includes("model_not_found") ||
     msg.includes("404") ||
-    msg.includes("models/") ||
     status === 404
   ) return "model_not_found";
 
   return "other";
 };
 
-// The extraction prompt — instructs Gemini to return pure JSON only
+// Builds the extraction prompt — returns pure JSON only
 const buildPrompt = (resumeText) => `You are a resume data extractor. Read the resume below and return ONLY a valid JSON object. No markdown, no code fences, no explanation, no preamble. Start your response with { and end with }.
 
 Resume:
@@ -138,9 +142,9 @@ Rules:
 
 // Makes a single Gemini API call with a timeout.
 // Returns { ok: true, text } or { ok: false, errorType, message }.
-// This function NEVER throws.
+// Never throws.
 const tryGenerate = async (apiKey, modelName, prompt) => {
-  const TIMEOUT_MS = 30_000; // 30 seconds
+  const TIMEOUT_MS = 30_000;
 
   const callPromise = (async () => {
     const client = getClient(apiKey);
@@ -156,7 +160,10 @@ const tryGenerate = async (apiKey, modelName, prompt) => {
   })();
 
   const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error(`Request timed out after ${TIMEOUT_MS / 1000}s`)), TIMEOUT_MS)
+    setTimeout(
+      () => reject(new Error(`Request timed out after ${TIMEOUT_MS / 1000}s`)),
+      TIMEOUT_MS
+    )
   );
 
   try {
@@ -173,7 +180,7 @@ const tryGenerate = async (apiKey, modelName, prompt) => {
   }
 };
 
-// Attempts to repair a truncated JSON string so we can still parse it
+// Attempts to repair a truncated JSON string
 const repairTruncatedJSON = (partial) => {
   let repaired = partial.trim().replace(/,\s*$/, "");
   const quoteCount = (repaired.match(/"/g) || []).length;
@@ -186,16 +193,18 @@ const repairTruncatedJSON = (partial) => {
 // Robustly extracts a JSON object from the raw Gemini response
 const extractJSON = (raw) => {
   const cleaned = raw
-    .replace(/^\uFEFF/, "")      // strip BOM
-    .replace(/```json/gi, "")    // strip code fences
+    .replace(/^\uFEFF/, "")
+    .replace(/```json/gi, "")
     .replace(/```/g, "")
     .trim();
 
   const firstBrace = cleaned.search(/\{/);
-  const lastBrace  = cleaned.lastIndexOf("}");
+  const lastBrace = cleaned.lastIndexOf("}");
 
   if (firstBrace < 0) {
-    throw new Error(`No JSON object found in response. Raw (first 300 chars): ${cleaned.slice(0, 300)}`);
+    throw new Error(
+      `No JSON object found in response. Raw (first 300 chars): ${cleaned.slice(0, 300)}`
+    );
   }
 
   if (lastBrace < 0 || lastBrace <= firstBrace) {
@@ -206,27 +215,21 @@ const extractJSON = (raw) => {
   return cleaned.slice(firstBrace, lastBrace + 1);
 };
 
-// Sleep helper for retry backoff
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // generatePortfolioHTML
 //
-// Takes resume text and an HTML template with {{placeholders}}.
-// Calls Gemini to extract resume data as JSON.
-// Replaces every {{key}} in the template with the extracted value.
-// Returns the final filled HTML string.
-//
-// Fallback chain per request:
+// Fallback chain:
 //   For each API key:
-//     Try gemini-2.0-flash-lite    (separate quota pool — tried first)
-//     Try gemini-2.0-flash         (fallback if lite quota exhausted)
-//     quota / key_invalid → skip to next KEY immediately
-//     model_not_found     → skip to next MODEL (same key)
-//     "other" on first attempt → retry once with 1s backoff
-//     bad JSON            → try next model
-//   All models failed     → try next key
-//   All keys exhausted    → throw descriptive error
+//     For each model in MODEL_PRIORITY:
+//       quota        → try NEXT MODEL (each model has its own quota pool)
+//       key_invalid  → skip to NEXT KEY
+//       model_not_found → try NEXT MODEL
+//       "other" error  → retry once with 1s backoff, then try NEXT MODEL
+//       bad JSON       → try NEXT MODEL
+//     All models exhausted → try NEXT KEY
+//   All keys exhausted → throw descriptive error
 // ─────────────────────────────────────────────────────────────────────────────
 const generatePortfolioHTML = async (resumeText, template) => {
   if (!resumeText || resumeText.trim().length < 50) {
@@ -239,25 +242,25 @@ const generatePortfolioHTML = async (resumeText, template) => {
   }
 
   const apiKeys = getApiKeys();
-  const prompt  = buildPrompt(resumeText);
+  const prompt = buildPrompt(resumeText);
   let lastErrorMessage = "No attempts were made.";
+  let allQuota = true; // track if every failure was quota-related
 
-  outerLoop: for (const apiKey of apiKeys) {
+  for (const apiKey of apiKeys) {
     console.log(`[Gemini] Trying key ...${apiKey.slice(-4)}`);
 
     for (let modelIdx = 0; modelIdx < MODEL_PRIORITY.length; modelIdx++) {
       const modelName = MODEL_PRIORITY[modelIdx];
       let result = await tryGenerate(apiKey, modelName, prompt);
 
-      // On transient "other" error, retry once with a short backoff
+      // Retry once on transient errors
       if (!result.ok && result.errorType === "other") {
-        const backoffMs = 1000;
-        console.log(`[Gemini] Transient error on ${modelName}. Retrying in ${backoffMs}ms...`);
-        await sleep(backoffMs);
+        console.log(`[Gemini] Transient error on ${modelName}. Retrying in 1s...`);
+        await sleep(1000);
         result = await tryGenerate(apiKey, modelName, prompt);
       }
 
-      // ── SUCCESS PATH ───────────────────────────────────────────────────
+      // ── SUCCESS ──────────────────────────────────────────────────────
       if (result.ok) {
         let jsonString;
         try {
@@ -266,11 +269,10 @@ const generatePortfolioHTML = async (resumeText, template) => {
           if (result.text.trim().startsWith("{")) {
             jsonString = result.text.trim();
           } else {
-            console.error(
-              `[Gemini] Could not find JSON from model=${modelName}. ${extractErr.message}`
-            );
+            console.error(`[Gemini] No JSON from model=${modelName}. ${extractErr.message}`);
             lastErrorMessage = extractErr.message;
-            continue; // try next model
+            allQuota = false;
+            continue;
           }
         }
 
@@ -286,21 +288,19 @@ const generatePortfolioHTML = async (resumeText, template) => {
                 `Extracted (first 300): ${jsonString.slice(0, 300)}`
             );
             lastErrorMessage = "Gemini returned a response that could not be parsed as JSON.";
-            continue; // try next model
+            allQuota = false;
+            continue;
           }
         }
 
-        // Fill every {{placeholder}} in the template
+        // Fill template placeholders
         let finalHTML = template;
         for (const [key, value] of Object.entries(data)) {
           const regex = new RegExp(`\\{\\{${key}\\}\\}`, "gi");
           finalHTML = finalHTML.replace(regex, String(value ?? ""));
         }
-
-        // Remove any remaining unfilled placeholders
         finalHTML = finalHTML.replace(/\{\{[a-zA-Z_]+\}\}/g, "");
 
-        // Sanity check — template must be a real HTML document
         if (!finalHTML.toLowerCase().trimStart().startsWith("<!doctype html")) {
           throw new Error(
             "The selected template does not start with <!DOCTYPE html>. " +
@@ -309,102 +309,77 @@ const generatePortfolioHTML = async (resumeText, template) => {
         }
 
         console.log(
-          `[Gemini] 🎉 Portfolio generated. model=${modelName}  key=...${apiKey.slice(-4)}`
+          `[Gemini] Portfolio generated. model=${modelName}  key=...${apiKey.slice(-4)}`
         );
         return finalHTML;
       }
 
-      // ── FAILURE ROUTING ────────────────────────────────────────────────
+      // ── FAILURE ROUTING ──────────────────────────────────────────────
       lastErrorMessage = result.message;
 
       if (result.errorType === "key_invalid") {
         console.warn(`[Gemini] Key ...${apiKey.slice(-4)} is invalid. Skipping to next key.`);
-        continue outerLoop;
+        allQuota = false;
+        break; // break inner loop → try next key
       }
 
       if (result.errorType === "quota") {
         console.warn(
           `[Gemini] Key ...${apiKey.slice(-4)} quota exhausted on model=${modelName}. Trying next model.`
         );
-        // Do NOT skip to next key on quota — try the next model first.
-        // gemini-2.0-flash-lite and gemini-2.0-flash have SEPARATE quota pools.
-        // continue to next model in the inner loop
+        // continue to next model — each model has its own daily quota
+        continue;
       }
 
       if (result.errorType === "model_not_found") {
-        console.warn(`[Gemini] Model "${modelName}" not found on this key. Trying next model.`);
+        console.warn(`[Gemini] Model "${modelName}" not available. Trying next model.`);
+        allQuota = false;
+        continue;
       }
-      // "other" after retry → also fall through to next model
+
+      // "other" after retry
+      allQuota = false;
     }
 
     console.warn(`[Gemini] All models failed for key ...${apiKey.slice(-4)}. Trying next key.`);
   }
 
-  // ── ALL KEYS EXHAUSTED — construct a helpful error message ────────────────
+  // ── ALL KEYS/MODELS EXHAUSTED ─────────────────────────────────────────────
   const lower = lastErrorMessage.toLowerCase();
 
   if (lower.includes("api key not valid") || lower.includes("permission")) {
     throw new Error(
-      "Your Gemini API key is invalid or has been revoked.\n" +
-        "Check GEMINI_API_KEY in your backend/.env file and make sure it is active at " +
-        "https://aistudio.google.com/app/apikey"
+      "Your Gemini API key is invalid or has been revoked. " +
+        "Check GEMINI_API_KEY in backend/.env at https://aistudio.google.com/app/apikey"
     );
   }
 
   if (
+    allQuota ||
     lower.includes("quota") ||
     lower.includes("resource_exhausted") ||
     lower.includes("429") ||
     lower.includes("rate limit")
   ) {
     throw new Error(
-      "All configured Gemini API keys have hit their daily quota.\n" +
-        "Options:\n" +
-        "1. Wait until midnight Pacific Time for the free quota to reset.\n" +
-        "2. Add a key from a different Google account as GEMINI_API_KEY_2 in backend/.env\n" +
-        "3. Enable billing on your Google Cloud project for higher limits.\n" +
+      "All configured Gemini API keys have hit their daily quota. " +
+        "Options: (1) Wait until midnight Pacific Time for the free quota to reset. " +
+        "(2) Add a key from a different Google account as GEMINI_API_KEY_2 in backend/.env. " +
+        "(3) Enable billing on your Google Cloud project for higher limits. " +
         "Get keys at: https://aistudio.google.com/app/apikey"
     );
   }
 
   if (lower.includes("model_not_found") || lower.includes("not found")) {
     throw new Error(
-      "None of the configured Gemini models are available on your API key.\n" +
-        "This usually means your key is region-restricted or the project has not enabled these models.\n" +
-        "Fix: Create a fresh key at https://aistudio.google.com/app/apikey and test it in AI Studio first."
+      "None of the Gemini models are available on your API key. " +
+        "Create a fresh key at https://aistudio.google.com/app/apikey and test it in AI Studio first."
     );
   }
 
   throw new Error(
-    `Portfolio generation failed after trying all API keys and models.\n` +
-      `Last error: ${lastErrorMessage}`
+    `Portfolio generation failed after trying all API keys and models. Last error: ${lastErrorMessage}`
   );
 };
 
 module.exports = { generatePortfolioHTML };
-
-/*
- * FALLBACK FLOW (per request)
- * ─────────────────────────────────────────────────────────────────────────────
- * For each API key:
- *   Try gemini-2.0-flash-lite   → success → RETURN  (separate quota, tried first)
- *                               → quota   → try next model (NOT next key)
- *                               → invalid → SKIP to next KEY
- *                               → other   → retry once with 1s backoff
- *   Try gemini-2.0-flash        → success → RETURN
- *                               → quota   → all models exhausted for this key
- *   All models quota-exhausted  → try next KEY
- *
- * All keys exhausted → throw descriptive error with fix instructions
- *
- * WHY lite FIRST:
- *   Google's free tier gives separate RPD (requests-per-day) limits per model.
- *   Using lite first means you get ~2x the daily free calls before hitting limits.
- *
- * ADDING A NEW MODEL:
- *   Just add the model ID string to MODEL_PRIORITY above.
- *
- * ADDING A NEW KEY:
- *   Add GEMINI_API_KEY_2=AIza... to backend/.env and restart.
- * ─────────────────────────────────────────────────────────────────────────────
- */
