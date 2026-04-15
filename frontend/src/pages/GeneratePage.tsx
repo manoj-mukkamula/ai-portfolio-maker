@@ -9,14 +9,28 @@ import { portfolioApi } from "@/lib/api";
 import { TEMPLATES } from "@/lib/templates";
 import {
   Upload, FileText, Sparkles, Info,
-  CheckCircle, Cpu, ChevronDown, X, AlertTriangle,
+  CheckCircle, Cpu, ChevronDown, X, AlertTriangle, Clock,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Categorize API error messages so we show the right UI
+type ErrorKind = "quota_daily" | "quota_credits" | "general";
+
+const categorizeError = (msg: string): ErrorKind => {
+  const lower = msg.toLowerCase();
+  if (lower.includes("daily") || lower.includes("midnight") || lower.includes("12:30") || lower.includes("quota reached")) {
+    return "quota_daily";
+  }
+  if (lower.includes("credit") || lower.includes("0 credit")) {
+    return "quota_credits";
+  }
+  return "general";
+};
+
 const GeneratePage = () => {
   const { refreshUser, user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const navigate              = useNavigate();
+  const { toast }             = useToast();
 
   const [tab, setTab]                           = useState<"upload" | "paste">("upload");
   const [file, setFile]                         = useState<File | null>(null);
@@ -25,7 +39,7 @@ const GeneratePage = () => {
   const [showPreloader, setShowPreloader]       = useState(false);
   const [dragOver, setDragOver]                 = useState(false);
   const [tipOpen, setTipOpen]                   = useState(true);
-  const [quotaError, setQuotaError]             = useState<string | null>(null);
+  const [apiError, setApiError]                 = useState<{ kind: ErrorKind; msg: string } | null>(null);
 
   const apiPromiseRef   = useRef<Promise<any> | null>(null);
   const isSubmittingRef = useRef(false);
@@ -40,9 +54,9 @@ const GeneratePage = () => {
         setFile(f);
       } else {
         toast({
-          title: "Invalid file type",
+          title:       "Invalid file type",
           description: "Only PDF and DOCX files are accepted.",
-          variant: "destructive",
+          variant:     "destructive",
         });
       }
     },
@@ -51,7 +65,7 @@ const GeneratePage = () => {
 
   const handleGenerate = () => {
     if (isSubmittingRef.current) return;
-    setQuotaError(null);
+    setApiError(null);
 
     if (!selectedTemplate) {
       toast({ title: "No template selected", description: "Pick a template before generating.", variant: "destructive" });
@@ -81,7 +95,7 @@ const GeneratePage = () => {
     } else {
       apiPromiseRef.current = portfolioApi.generate({
         resumeText,
-        template: selectedTpl!.template,
+        template:     selectedTpl!.template,
         templateName: selectedTpl!.id,
       });
     }
@@ -103,12 +117,9 @@ const GeneratePage = () => {
       const msg: string =
         err?.response?.data?.message || err?.message || "Something went wrong. Please try again.";
 
-      if (
-        msg.toLowerCase().includes("quota") ||
-        msg.toLowerCase().includes("daily") ||
-        msg.toLowerCase().includes("midnight")
-      ) {
-        setQuotaError(msg);
+      const kind = categorizeError(msg);
+      if (kind !== "general") {
+        setApiError({ kind, msg });
       } else {
         toast({ title: "Generation failed", description: msg, variant: "destructive" });
       }
@@ -119,9 +130,9 @@ const GeneratePage = () => {
   const canGenerate = hasInput && !!selectedTemplate && (user?.credits ?? 0) > 0;
   const charCount   = resumeText.length;
   const charColor   =
-    charCount === 0 ? "text-muted-foreground"
-    : charCount < 100 ? "text-red-500"
-    : charCount < 200 ? "text-amber-500"
+    charCount === 0     ? "text-muted-foreground"
+    : charCount < 100   ? "text-red-500"
+    : charCount < 200   ? "text-amber-500"
     : "text-green-500";
 
   const PASTE_PLACEHOLDER = `Paste your resume text here...
@@ -163,38 +174,62 @@ Projects:
           </p>
         </div>
 
-        {/* Quota error banner */}
-        {quotaError && (
-          <div className="mb-5 bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-700 rounded-xl p-4 flex gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-amber-800 dark:text-amber-300 text-sm mb-1">
-                Gemini API Quota Reached
+        {/* Error banners */}
+        {apiError && (
+          <div className={`mb-5 rounded-xl p-4 flex gap-3 border ${
+            apiError.kind === "quota_daily"
+              ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700"
+              : "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700"
+          }`}>
+            {apiError.kind === "quota_daily" ? (
+              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            ) : (
+              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <p className={`font-semibold text-sm mb-1 ${
+                apiError.kind === "quota_daily"
+                  ? "text-amber-800 dark:text-amber-300"
+                  : "text-red-800 dark:text-red-300"
+              }`}>
+                {apiError.kind === "quota_daily" ? "Daily Quota Reached" : "Generation Failed"}
               </p>
-              <p className="text-amber-700 dark:text-amber-400 text-xs leading-relaxed">
-                The free Gemini API quota resets at midnight Pacific Time (around 12:30 PM IST).
-                To generate right now, add a second key from a different Google account as{" "}
-                <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded font-mono">
-                  GEMINI_API_KEY_2
-                </code>{" "}
-                in{" "}
-                <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded font-mono">
-                  backend/.env
-                </code>{" "}
-                and restart the server.
+              <p className={`text-xs leading-relaxed ${
+                apiError.kind === "quota_daily"
+                  ? "text-amber-700 dark:text-amber-400"
+                  : "text-red-700 dark:text-red-400"
+              }`}>
+                {apiError.kind === "quota_daily" ? (
+                  <>
+                    The free Gemini API quota resets at midnight Pacific Time (around 12:30 PM IST).
+                    To generate right now, add a second key from a different Google account as{" "}
+                    <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded font-mono">
+                      GEMINI_API_KEY_2
+                    </code>{" "}
+                    in{" "}
+                    <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded font-mono">
+                      backend/.env
+                    </code>{" "}
+                    and restart the server.
+                  </>
+                ) : (
+                  apiError.msg
+                )}
               </p>
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300 underline mt-2 font-medium"
-              >
-                Get a free key at Google AI Studio
-              </a>
+              {apiError.kind === "quota_daily" && (
+                <a
+                  href="https://aistudio.google.com/app/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-amber-800 dark:text-amber-300 underline mt-2 font-medium"
+                >
+                  Get a free key at Google AI Studio
+                </a>
+              )}
             </div>
             <button
-              onClick={() => setQuotaError(null)}
-              className="ml-auto text-amber-600 hover:text-amber-800 shrink-0"
+              onClick={() => setApiError(null)}
+              className="ml-auto text-muted-foreground hover:text-foreground shrink-0"
             >
               <X className="w-4 h-4" />
             </button>
@@ -223,10 +258,7 @@ Projects:
 
             {tab === "upload" ? (
               <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(true);
-                }}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
                 className={`rounded-xl p-8 text-center transition-all duration-200 ${
@@ -303,8 +335,8 @@ Projects:
                 <div className="flex items-center justify-between mt-1.5">
                   <p className={`text-xs ${charColor} font-medium transition-colors`}>
                     {charCount} characters
-                    {charCount > 0 && charCount < 200 && " — add more for richer results"}
-                    {charCount >= 200 && " — looks great!"}
+                    {charCount > 0 && charCount < 200 && " - add more for richer results"}
+                    {charCount >= 200 && " - looks great!"}
                   </p>
                   <p className="text-xs text-muted-foreground">Best with 200+ characters</p>
                 </div>
@@ -341,10 +373,10 @@ Projects:
                         title={tpl.name}
                         className="w-full h-full border-0 pointer-events-none"
                         style={{
-                          transform: "scale(0.4)",
+                          transform:       "scale(0.4)",
                           transformOrigin: "top left",
-                          width: "250%",
-                          height: "250%",
+                          width:           "250%",
+                          height:          "250%",
                         }}
                         sandbox="allow-same-origin"
                       />
@@ -459,7 +491,7 @@ Projects:
           </div>
         </div>
 
-        {/* ── Generate button row ── */}
+        {/* Generate button row */}
         <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
           <div className="flex items-center gap-2 text-sm">
             <Info className="w-4 h-4 text-primary" />
@@ -470,7 +502,6 @@ Projects:
             </span>
           </div>
 
-          {/* Button is ALWAYS visible — disabled state has its own clear styling */}
           <button
             onClick={handleGenerate}
             disabled={!canGenerate || showPreloader}
@@ -487,7 +518,7 @@ Projects:
               canGenerate && !showPreloader
                 ? {
                     background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                    boxShadow: "0 4px 20px rgba(99,102,241,0.35)",
+                    boxShadow:  "0 4px 20px rgba(99,102,241,0.35)",
                   }
                 : {}
             }

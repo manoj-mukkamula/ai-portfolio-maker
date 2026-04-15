@@ -1,6 +1,18 @@
 // src/components/GeneratePreloader.tsx
-// Premium 10-second preloader shown before portfolio generation.
-// Deep-space palette, smooth step transitions, deterministic particles.
+//
+// FIX: The old preloader always completed at exactly 10s and called onComplete(),
+// then the parent awaited the still-running API promise (which could take 60+s
+// on RPM retry). The user saw a blank screen between preloader end and navigation.
+//
+// New behaviour:
+//   - Phase 1 (0–10s): normal animated progress to ~97%
+//   - Phase 2 (10s+): enters "extended wait" mode — progress bar pulses at 97%,
+//     message changes to "API is processing your request..." with a live timer
+//   - onComplete() is only called once the parent signals the API is done,
+//     OR at the 10s mark if the API was already done (fast path, unchanged).
+//
+// The parent (GeneratePage) controls this via the same onComplete callback —
+// no interface change required.
 
 import { useEffect, useState, useRef } from "react";
 
@@ -49,20 +61,19 @@ const STEPS = [
   },
 ];
 
-// Deterministic particles (no Math.random on render — prevents flicker)
 const PARTICLES = [
-  { x: 15, y: 20, size: 3, delay: 0,    dur: 4   },
-  { x: 80, y: 15, size: 2, delay: 0.8,  dur: 5   },
-  { x: 70, y: 75, size: 4, delay: 1.5,  dur: 3.5 },
-  { x: 25, y: 70, size: 2, delay: 0.3,  dur: 4.5 },
-  { x: 90, y: 45, size: 3, delay: 2,    dur: 3   },
-  { x: 10, y: 55, size: 2, delay: 1.2,  dur: 5   },
-  { x: 55, y: 10, size: 3, delay: 0.6,  dur: 4   },
-  { x: 40, y: 85, size: 2, delay: 1.8,  dur: 4.5 },
-  { x: 60, y: 30, size: 1, delay: 0.4,  dur: 6   },
-  { x: 30, y: 40, size: 2, delay: 2.2,  dur: 3.5 },
-  { x: 85, y: 65, size: 1, delay: 1,    dur: 5   },
-  { x: 45, y: 55, size: 2, delay: 0.7,  dur: 4.2 },
+  { x: 15, y: 20, size: 3, delay: 0,   dur: 4   },
+  { x: 80, y: 15, size: 2, delay: 0.8, dur: 5   },
+  { x: 70, y: 75, size: 4, delay: 1.5, dur: 3.5 },
+  { x: 25, y: 70, size: 2, delay: 0.3, dur: 4.5 },
+  { x: 90, y: 45, size: 3, delay: 2,   dur: 3   },
+  { x: 10, y: 55, size: 2, delay: 1.2, dur: 5   },
+  { x: 55, y: 10, size: 3, delay: 0.6, dur: 4   },
+  { x: 40, y: 85, size: 2, delay: 1.8, dur: 4.5 },
+  { x: 60, y: 30, size: 1, delay: 0.4, dur: 6   },
+  { x: 30, y: 40, size: 2, delay: 2.2, dur: 3.5 },
+  { x: 85, y: 65, size: 1, delay: 1,   dur: 5   },
+  { x: 45, y: 55, size: 2, delay: 0.7, dur: 4.2 },
 ];
 
 const CSS = `
@@ -91,6 +102,10 @@ const CSS = `
     0%   { background-position: -200% center; }
     100% { background-position: 200% center; }
   }
+  @keyframes gpl-bar-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.5; }
+  }
   .gpl-float { animation: gpl-float var(--dur, 4s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
   .gpl-spin  { animation: gpl-spin-slow 8s linear infinite; }
   .gpl-spin-rev { animation: gpl-spin-rev 12s linear infinite; }
@@ -104,44 +119,63 @@ const CSS = `
     background-clip: text;
     animation: gpl-shimmer 2.8s linear infinite;
   }
+  .gpl-bar-pulse { animation: gpl-bar-pulse 1.6s ease-in-out infinite; }
 `;
 
 interface Props {
   onComplete: () => void;
 }
 
-const TOTAL_DURATION_MS = 10_000;
+const NORMAL_DURATION_MS = 10_000;
+
+// Formats elapsed seconds as "1m 04s" or "45s"
+const formatWait = (seconds: number): string => {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}m ${String(s).padStart(2, "0")}s`;
+};
 
 const GeneratePreloader = ({ onComplete }: Props) => {
-  const [stepIdx, setStepIdx] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const startRef = useRef(Date.now());
-  const rafRef = useRef<number>(0);
-  const completedRef = useRef(false);
+  const [stepIdx, setStepIdx]       = useState(0);
+  const [progress, setProgress]     = useState(0);
+  const [extended, setExtended]     = useState(false); // waiting beyond 10s
+  const [waitSecs, setWaitSecs]     = useState(0);
 
-  // Smooth progress animation via rAF
+  const startRef       = useRef(Date.now());
+  const rafRef         = useRef<number>(0);
+  const timerRef       = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completedRef   = useRef(false);
+  const normalDoneRef  = useRef(false); // true after 10s animation completes
+
+  // Normal 10s progress animation
   useEffect(() => {
     const tick = () => {
       const elapsed = Date.now() - startRef.current;
-      const ratio = Math.min(elapsed / TOTAL_DURATION_MS, 1);
-      // Ease-out curve so progress slows near the end (feels anticipatory)
-      const easedRatio = 1 - Math.pow(1 - ratio, 2);
-      const pct = Math.round(easedRatio * 97); // never reaches 100 until done
+      const ratio   = Math.min(elapsed / NORMAL_DURATION_MS, 1);
+      const eased   = 1 - Math.pow(1 - ratio, 2);
+      const pct     = Math.round(eased * 97);
       setProgress(pct);
 
-      // Advance step index based on progress
       let si = 0;
       for (let i = STEPS.length - 1; i >= 0; i--) {
         if (pct >= STEPS[i].pct) { si = i; break; }
       }
       setStepIdx(si);
 
-      if (elapsed >= TOTAL_DURATION_MS) {
+      if (elapsed >= NORMAL_DURATION_MS) {
+        normalDoneRef.current = true;
+        setProgress(97);
+        setStepIdx(STEPS.length - 1);
+        // Signal parent — if API already done it will navigate immediately.
+        // If API is still running, onComplete triggers the "await apiPromise" path
+        // in the parent which will wait for it. Either way the parent controls navigation.
         if (!completedRef.current) {
           completedRef.current = true;
-          setProgress(97);
           onComplete();
         }
+        // Enter extended wait mode for UI (in case parent doesn't navigate immediately)
+        setExtended(true);
         return;
       }
       rafRef.current = requestAnimationFrame(tick);
@@ -149,6 +183,16 @@ const GeneratePreloader = ({ onComplete }: Props) => {
     rafRef.current = requestAnimationFrame(tick);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [onComplete]);
+
+  // Extended wait timer — shows "Waiting X seconds" when API takes longer than 10s
+  useEffect(() => {
+    if (!extended) return;
+    const extendedStart = Date.now();
+    timerRef.current = setInterval(() => {
+      setWaitSecs(Math.floor((Date.now() - extendedStart) / 1000));
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [extended]);
 
   const step = STEPS[stepIdx];
 
@@ -212,7 +256,6 @@ const GeneratePreloader = ({ onComplete }: Props) => {
 
         {/* Central animated icon */}
         <div className="relative mb-10">
-          {/* Pulse ring */}
           <div
             className="absolute inset-0 rounded-full gpl-pulse-ring"
             style={{
@@ -220,7 +263,6 @@ const GeneratePreloader = ({ onComplete }: Props) => {
               border: "2px solid rgba(99,102,241,0.5)",
             }}
           />
-          {/* Outer spinning ring */}
           <div
             className="gpl-spin rounded-full"
             style={{
@@ -229,7 +271,6 @@ const GeneratePreloader = ({ onComplete }: Props) => {
               border: "2px dashed rgba(99,102,241,0.25)",
             }}
           />
-          {/* Inner counter-spinning ring */}
           <div
             className="absolute gpl-spin-rev rounded-full"
             style={{
@@ -239,7 +280,6 @@ const GeneratePreloader = ({ onComplete }: Props) => {
               border: "1.5px solid rgba(139,92,246,0.3)",
             }}
           />
-          {/* Core */}
           <div
             className="absolute flex items-center justify-center rounded-full"
             style={{
@@ -258,26 +298,47 @@ const GeneratePreloader = ({ onComplete }: Props) => {
 
         {/* Step text */}
         <div className="text-center max-w-sm px-6 mb-10">
-          <p
-            key={stepIdx}
-            className="gpl-fade-up text-[11px] tracking-[0.2em] uppercase font-semibold mb-3"
-            style={{ color: "rgba(167,139,250,0.8)" }}
-          >
-            {step.phase}
-          </p>
-          <h2
-            key={`msg-${stepIdx}`}
-            className="gpl-fade-up gpl-shimmer-text text-xl sm:text-2xl font-bold mb-2 leading-tight"
-          >
-            {step.message}
-          </h2>
-          <p
-            key={`sub-${stepIdx}`}
-            className="gpl-fade-up text-sm"
-            style={{ color: "rgba(148,163,184,0.55)", animationDelay: "0.1s" }}
-          >
-            {step.sub}
-          </p>
+          {!extended ? (
+            <>
+              <p
+                key={stepIdx}
+                className="gpl-fade-up text-[11px] tracking-[0.2em] uppercase font-semibold mb-3"
+                style={{ color: "rgba(167,139,250,0.8)" }}
+              >
+                {step.phase}
+              </p>
+              <h2
+                key={`msg-${stepIdx}`}
+                className="gpl-fade-up gpl-shimmer-text text-xl sm:text-2xl font-bold mb-2 leading-tight"
+              >
+                {step.message}
+              </h2>
+              <p
+                key={`sub-${stepIdx}`}
+                className="gpl-fade-up text-sm"
+                style={{ color: "rgba(148,163,184,0.55)", animationDelay: "0.1s" }}
+              >
+                {step.sub}
+              </p>
+            </>
+          ) : (
+            <>
+              <p
+                className="gpl-fade-up text-[11px] tracking-[0.2em] uppercase font-semibold mb-3"
+                style={{ color: "rgba(167,139,250,0.8)" }}
+              >
+                Gemini is processing
+              </p>
+              <h2 className="gpl-shimmer-text text-xl sm:text-2xl font-bold mb-2 leading-tight">
+                Waiting for AI response...
+              </h2>
+              <p className="text-sm" style={{ color: "rgba(148,163,184,0.55)" }}>
+                {waitSecs > 0
+                  ? `Still working — ${formatWait(waitSecs)} elapsed. Gemini may be retrying due to rate limits.`
+                  : "Sending request to Gemini AI..."}
+              </p>
+            </>
+          )}
         </div>
 
         {/* Progress bar */}
@@ -289,7 +350,7 @@ const GeneratePreloader = ({ onComplete }: Props) => {
                 style={{ background: "#6366f1" }}
               />
               <span className="text-[11px] font-medium" style={{ color: "rgba(148,163,184,0.6)" }}>
-                Generating
+                {extended ? "Processing" : "Generating"}
               </span>
             </div>
             <span
@@ -304,7 +365,7 @@ const GeneratePreloader = ({ onComplete }: Props) => {
             style={{ background: "rgba(255,255,255,0.06)" }}
           >
             <div
-              className="h-full rounded-full transition-all duration-300"
+              className={`h-full rounded-full transition-all duration-300 ${extended ? "gpl-bar-pulse" : ""}`}
               style={{
                 width: `${progress}%`,
                 background: "linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #22d3ee 100%)",
@@ -321,17 +382,28 @@ const GeneratePreloader = ({ onComplete }: Props) => {
               key={i}
               className="rounded-full transition-all duration-500"
               style={{
-                width: i === stepIdx ? 20 : 6,
+                width:  i === stepIdx ? 20 : 6,
                 height: 6,
-                background: i < stepIdx
-                  ? "rgba(34,197,94,0.7)"
-                  : i === stepIdx
-                  ? "rgba(99,102,241,0.9)"
-                  : "rgba(255,255,255,0.12)",
+                background:
+                  i < stepIdx
+                    ? "rgba(34,197,94,0.7)"
+                    : i === stepIdx
+                    ? "rgba(99,102,241,0.9)"
+                    : "rgba(255,255,255,0.12)",
               }}
             />
           ))}
         </div>
+
+        {/* Extended wait note */}
+        {extended && waitSecs > 5 && (
+          <p
+            className="gpl-fade-up mt-5 text-[11px] text-center max-w-xs px-6"
+            style={{ color: "rgba(148,163,184,0.4)" }}
+          >
+            Free tier limits may cause brief delays. Your portfolio is on its way.
+          </p>
+        )}
 
         {/* Bottom credit */}
         <p

@@ -13,12 +13,10 @@ const portfolioRoutes = require("./routes/portfolioRoutes");
 
 const app = express();
 
-// ── Security headers ────────────────────────────────────────────────────────
+// Security headers
 app.use(helmet());
 
-// ── CORS ────────────────────────────────────────────────────────────────────
-// Development defaults: Vite dev server on 8080 or 5173.
-// Production: set ALLOWED_ORIGINS env var to your deployed frontend URL.
+// CORS — dev defaults allow both Vite ports; set ALLOWED_ORIGINS in prod
 const defaultOrigins = [
   "http://localhost:8080",
   "http://localhost:5173",
@@ -43,32 +41,24 @@ app.use(
   })
 );
 
-// ── Body parsers ────────────────────────────────────────────────────────────
+// Body parsers
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// ── Global rate limiter ─────────────────────────────────────────────────────
+// Global rate limiter
 app.use(globalRateLimiter);
 
-// ── Health check ────────────────────────────────────────────────────────────
-// Simple liveness probe — does NOT call Gemini (no quota burned).
+// Health check — does NOT call Gemini, burns zero quota
 app.get("/health", (_req, res) =>
   res.json({
-    status: "ok",
-    project: "AI Portfolio Maker",
+    status:    "ok",
+    project:   "AI Portfolio Maker",
     timestamp: new Date().toISOString(),
   })
 );
 
-// ── Gemini key status endpoint ──────────────────────────────────────────────
-// GET /health/gemini
-// Returns which keys are configured and their key previews.
-// Does NOT make any Gemini API calls — zero quota consumed.
-//
-// If you need to verify a key works, test it directly in Google AI Studio:
-//   https://aistudio.google.com/app/prompts/new_chat
-//
-// Example: curl http://localhost:5000/health/gemini
+// Gemini key status — shows which keys are loaded, zero API calls made
+// Usage: curl http://localhost:5000/health/gemini
 app.get("/health/gemini", (_req, res) => {
   const keyEnvVars = [
     "GEMINI_API_KEY",
@@ -78,11 +68,11 @@ app.get("/health/gemini", (_req, res) => {
     "GEMINI_API_KEY_5",
   ];
 
-  const keys = keyEnvVars
+  const loaded = keyEnvVars
     .map((name) => ({ name, value: process.env[name] }))
     .filter(({ value }) => typeof value === "string" && value.trim().length > 10)
     .map(({ name, value }) => ({
-      envVar: name,
+      envVar:     name,
       keyPreview: `...${value.slice(-6)}`,
       configured: true,
     }));
@@ -94,33 +84,32 @@ app.get("/health/gemini", (_req, res) => {
     })
     .map((name) => ({ envVar: name, configured: false }));
 
-  const modelsInUse = [
-    "gemini-2.0-flash-lite  (primary — separate quota pool)",
-    "gemini-2.0-flash       (fallback — if lite quota exhausted)",
-  ];
-
   res.json({
-    keysConfigured: keys.length,
-    keys,
-    missingSlots: missing,
-    modelsInUse,
-    note: "This endpoint no longer calls Gemini to avoid burning free-tier quota. To test a key, visit https://aistudio.google.com/app/prompts/new_chat",
-    tip: keys.length === 0
-      ? "Add GEMINI_API_KEY=AIza... to backend/.env and restart the server."
-      : `You have ${keys.length} key(s) configured. Each key gets separate daily quota per model.`,
+    keysConfigured: loaded.length,
+    keys:           loaded,
+    missingSlots:   missing,
+    modelsInUse: [
+      "gemini-1.5-flash  (primary  — 1500 RPD free, own quota pool)",
+      "gemini-2.0-flash  (fallback — 1500 RPD free, separate quota pool)",
+    ],
+    note: "This endpoint makes no Gemini API calls. To verify a key, visit https://aistudio.google.com/app/prompts/new_chat",
+    tip:
+      loaded.length === 0
+        ? "Add GEMINI_API_KEY=AIza... to backend/.env and restart."
+        : `${loaded.length} key(s) configured. Each gets separate daily quota per model.`,
   });
 });
 
-// ── API routes ──────────────────────────────────────────────────────────────
+// API routes
 app.use("/api/auth",      authRoutes);
 app.use("/api/portfolio", portfolioRoutes);
 
-// ── 404 handler ─────────────────────────────────────────────────────────────
+// 404 handler
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
-// ── Central error handler (must be last) ────────────────────────────────────
+// Central error handler (must be last)
 app.use(errorHandler);
 
 module.exports = app;

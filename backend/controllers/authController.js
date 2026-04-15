@@ -1,5 +1,5 @@
 // backend/controllers/authController.js
-// Added: deleteAccount — verifies password, deletes all portfolios, then deletes user
+// FIX: deleteAccount used wrong field name "user" in Portfolio.deleteMany — should be "userId"
 
 const jwt = require("jsonwebtoken");
 const { z } = require("zod");
@@ -7,8 +7,8 @@ const User = require("../models/User");
 const Portfolio = require("../models/Portfolio");
 
 const registerSchema = z.object({
-  name: z.string().min(2).max(50),
-  email: z.string().email(),
+  name:     z.string().min(2).max(50),
+  email:    z.string().email(),
   password: z
     .string()
     .min(8, "Password must be at least 8 characters")
@@ -17,7 +17,7 @@ const registerSchema = z.object({
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email:    z.string().email(),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -30,17 +30,33 @@ const register = async (req, res, next) => {
   try {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ success: false, message: parsed.error.errors.map((e) => e.message).join(". ") });
+      return res.status(400).json({
+        success: false,
+        message: parsed.error.errors.map((e) => e.message).join(". "),
+      });
     }
     const { name, email, password } = parsed.data;
     const existing = await User.findOne({ email });
-    if (existing) return res.status(409).json({ success: false, message: "An account with this email already exists." });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists.",
+      });
+    }
 
-    const user = await User.create({ name, email, password });
+    const user  = await User.create({ name, email, password });
     const token = signToken(user._id);
     res.status(201).json({
-      success: true, message: "Account created successfully.", token,
-      user: { id: user._id, name: user.name, email: user.email, credits: user.credits, creditsLastReset: user.creditsLastReset },
+      success: true,
+      message: "Account created successfully.",
+      token,
+      user: {
+        id:               user._id,
+        name:             user.name,
+        email:            user.email,
+        credits:          user.credits,
+        creditsLastReset: user.creditsLastReset,
+      },
     });
   } catch (err) { next(err); }
 };
@@ -49,7 +65,10 @@ const login = async (req, res, next) => {
   try {
     const parsed = loginSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ success: false, message: parsed.error.errors.map((e) => e.message).join(". ") });
+      return res.status(400).json({
+        success: false,
+        message: parsed.error.errors.map((e) => e.message).join(". "),
+      });
     }
     const { email, password } = parsed.data;
     const user = await User.findOne({ email }).select("+password");
@@ -59,8 +78,16 @@ const login = async (req, res, next) => {
     await user.resetCreditsIfNeeded();
     const token = signToken(user._id);
     res.status(200).json({
-      success: true, message: "Logged in successfully.", token,
-      user: { id: user._id, name: user.name, email: user.email, credits: user.credits, creditsLastReset: user.creditsLastReset },
+      success: true,
+      message: "Logged in successfully.",
+      token,
+      user: {
+        id:               user._id,
+        name:             user.name,
+        email:            user.email,
+        credits:          user.credits,
+        creditsLastReset: user.creditsLastReset,
+      },
     });
   } catch (err) { next(err); }
 };
@@ -72,30 +99,48 @@ const getMe = async (req, res, next) => {
     await user.resetCreditsIfNeeded();
     res.status(200).json({
       success: true,
-      user: { id: user._id, name: user.name, email: user.email, credits: user.credits, creditsLastReset: user.creditsLastReset },
+      user: {
+        id:               user._id,
+        name:             user.name,
+        email:            user.email,
+        credits:          user.credits,
+        creditsLastReset: user.creditsLastReset,
+      },
     });
   } catch (err) { next(err); }
 };
 
 /**
  * DELETE /api/auth/account
- * Verifies password, then deletes all portfolios + user account
+ * Verifies password, then deletes all portfolios + user account.
+ *
+ * FIX: Portfolio.deleteMany({ user: user._id }) was wrong — field in schema is "userId"
  */
 const deleteAccount = async (req, res, next) => {
   try {
     const { password } = req.body;
     if (!password) {
-      return res.status(400).json({ success: false, message: "Password is required to delete your account." });
+      return res.status(400).json({
+        success: false,
+        message: "Password is required to delete your account.",
+      });
     }
+
     const user = await User.findById(req.user._id).select("+password");
-    if (!user) return res.status(404).json({ success: false, message: "User not found." });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
 
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: "Incorrect password. Account not deleted." });
+      return res.status(401).json({
+        success: false,
+        message: "Incorrect password. Account not deleted.",
+      });
     }
 
-    await Portfolio.deleteMany({ user: user._id });
+    // FIX: was { user: user._id } — the Portfolio schema field is "userId"
+    await Portfolio.deleteMany({ userId: user._id });
     await User.findByIdAndDelete(user._id);
 
     res.status(200).json({

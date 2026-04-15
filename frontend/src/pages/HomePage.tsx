@@ -70,7 +70,7 @@ const HOW_IT_WORKS = [
     color: "#0ea5e9",
     title: "Gemini AI builds it",
     desc: "Google Gemini extracts every detail from your resume and writes compelling, personalised copy for each section.",
-    detail: "Powered by Gemini 2.0",
+    detail: "Powered by Gemini 1.5 Flash",
   },
   {
     step: 4,

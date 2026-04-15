@@ -4,11 +4,6 @@
 
 require("dotenv").config();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STARTUP ENVIRONMENT CHECK
-// Prints a clear summary of what was loaded from .env.
-// Makes it easy to spot missing or mis-named variables before requests arrive.
-// ─────────────────────────────────────────────────────────────────────────────
 const geminiKeys = [
   ["GEMINI_API_KEY",   process.env.GEMINI_API_KEY],
   ["GEMINI_API_KEY_2", process.env.GEMINI_API_KEY_2],
@@ -38,11 +33,16 @@ if (loadedKeys.length === 0) {
   skipped.forEach(([name]) => {
     console.log(`  ${name.padEnd(16)}: — not set (optional backup)`);
   });
+  console.log("");
+  console.log("  Models in use (free tier, India):");
+  console.log("    1. gemini-1.5-flash  — primary,  1500 req/day, own quota");
+  console.log("    2. gemini-2.0-flash  — fallback, 1500 req/day, separate quota");
+  console.log("  RPM throttle (429): waits 62s and retries automatically.");
+  console.log("  Daily quota (429):  tries next model, then next key.");
 }
 
 console.log("─".repeat(60));
 
-// ── Critical warnings ────────────────────────────────────────────────────────
 if (loadedKeys.length === 0) {
   console.error(
     "\n❌ CRITICAL: No Gemini API key is configured.\n" +
@@ -55,12 +55,11 @@ if (loadedKeys.length === 0) {
 if (!process.env.MONGO_URI) {
   console.error(
     "\n❌ CRITICAL: MONGO_URI is not set.\n" +
-      "  The server cannot connect to MongoDB and will exit.\n" +
+      "  The server cannot connect to MongoDB.\n" +
       "  Fix: Add MONGO_URI=mongodb+srv://... to backend/.env then restart.\n"
   );
 }
 
-// ── Bootstrap ────────────────────────────────────────────────────────────────
 const app       = require("./app");
 const connectDB = require("./config/db");
 
@@ -71,7 +70,8 @@ const PORT = parseInt(process.env.PORT || "5000", 10);
     await connectDB();
     app.listen(PORT, () => {
       console.log(`\n✅ Server running at http://localhost:${PORT}`);
-      console.log(`   Health check: http://localhost:${PORT}/health\n`);
+      console.log(`   Health check: http://localhost:${PORT}/health`);
+      console.log(`   Key status:   http://localhost:${PORT}/health/gemini\n`);
     });
   } catch (err) {
     console.error("Failed to start server:", err.message);
