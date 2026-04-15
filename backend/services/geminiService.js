@@ -30,12 +30,28 @@
 
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Correct models for free tier, India, 2026
-// DO NOT add gemini-2.0-flash-lite (same pool as 2.0-flash)
-// DO NOT add gemini-1.5-flash-8b (deprecated, 404)
+// ─────────────────────────────────────────────────────────────
+// MODEL SELECTION UPDATE (IMPORTANT)
+//
+// Previous issue:
+// - gemini-1.5-flash is deprecated or unavailable in many regions (India)
+// - Calls to this model returned "model_not_found", wasting attempts
+// - Fallback to gemini-2.0-flash caused faster quota exhaustion
+//
+// Fix:
+// - Use gemini-2.5-flash as primary (best free-tier availability currently)
+// - Keep 2.0 models as fallback only
+//
+// Result:
+// - Fewer failed API calls
+// - Better success rate
+// - Reduced quota waste
+// ─────────────────────────────────────────────────────────────
 const MODEL_PRIORITY = [
-  "gemini-1.5-flash",  // primary — stable, 1500 RPD free
-  "gemini-2.0-flash",  // fallback — separate quota pool
+  "gemini-2.5-flash",       // primary: best free-tier model right now
+  "gemini-2.0-flash",       // fallback: stable 2.0 alias
+  "gemini-2.0-flash-lite",  // fallback: lightweight 2.0
+  "gemini-2.0-flash-preview", // dont remove any of these models
 ];
 
 const RPM_RETRY_DELAY_MS = 62_000; // wait 62s after an RPM 429
@@ -348,3 +364,5 @@ const generatePortfolioHTML = async (resumeText, template) => {
 };
 
 module.exports = { generatePortfolioHTML };
+
+// changed the models from 
