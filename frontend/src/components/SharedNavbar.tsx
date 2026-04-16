@@ -63,15 +63,17 @@ const SharedNavbar = ({ variant = "public" }: SharedNavbarProps) => {
 
         {/* Right side */}
         <div className="flex items-center gap-2">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
-            title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {theme === "dark"
-              ? <Sun className="w-4 h-4 text-amber-400" />
-              : <Moon className="w-4 h-4 text-muted-foreground" />}
-          </button>
+          {variant === "public" && (
+  <button
+    onClick={toggleTheme}
+    className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
+    title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+  >
+    {theme === "dark"
+      ? <Sun className="w-4 h-4 text-amber-400" />
+      : <Moon className="w-4 h-4 text-muted-foreground" />}
+  </button>
+)}
 
           {variant === "public" && (
             <>
