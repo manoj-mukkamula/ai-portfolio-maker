@@ -1,5 +1,7 @@
 // src/pages/SettingsPage.tsx
-// Premium settings with larger text, polished danger zone, multi-step delete
+// Removed Security section (was showing password as dots with no functionality)
+// Added Export Data section as a meaningful replacement
+// Profile, Usage, Appearance, Export Data, Danger Zone
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -9,8 +11,9 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
 import { authApi } from "@/lib/api";
 import {
-  User, Shield, Sun, Moon, Trash2, AlertTriangle,
+  User, Sun, Moon, Trash2, AlertTriangle,
   Eye, EyeOff, X, ChevronRight, Check, Zap,
+  Download, FileJson, FileText,
 } from "lucide-react";
 
 type DeleteStep = "idle" | "feedback" | "confirm";
@@ -30,12 +33,12 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [deleteStep, setDeleteStep]     = useState<DeleteStep>("idle");
+  const [deleteStep, setDeleteStep]         = useState<DeleteStep>("idle");
   const [feedbackReason, setFeedbackReason] = useState("");
-  const [feedbackNote, setFeedbackNote] = useState("");
-  const [password, setPassword]         = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [deleting, setDeleting]         = useState(false);
+  const [feedbackNote, setFeedbackNote]     = useState("");
+  const [password, setPassword]             = useState("");
+  const [showPassword, setShowPassword]     = useState(false);
+  const [deleting, setDeleting]             = useState(false);
 
   const handleDeleteAccount = async () => {
     if (!password.trim()) {
@@ -63,6 +66,23 @@ const SettingsPage = () => {
     setPassword("");
   };
 
+  const handleExportProfile = () => {
+    const data = {
+      name: user?.name,
+      email: user?.email,
+      credits: user?.credits,
+      exportedAt: new Date().toISOString(),
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ai-portfolio-maker-profile.json";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Profile exported", description: "Your profile data has been downloaded." });
+  };
+
   const credits = user?.credits ?? 0;
 
   return (
@@ -73,7 +93,7 @@ const SettingsPage = () => {
           <p className="text-xs tracking-widest text-primary font-semibold uppercase">Account</p>
           <h1 className="text-4xl font-extrabold text-foreground mt-1.5 tracking-tight">Settings</h1>
           <p className="text-lg text-muted-foreground mt-2">
-            Manage your account preferences and security.
+            Manage your account preferences and data.
           </p>
         </div>
 
@@ -87,8 +107,8 @@ const SettingsPage = () => {
           </div>
           <div className="space-y-1">
             {[
-              { label: "Full Name",      value: user?.name  ?? "—" },
-              { label: "Email Address",  value: user?.email ?? "—" },
+              { label: "Full Name",     value: user?.name  ?? "—" },
+              { label: "Email Address", value: user?.email ?? "—" },
             ].map((field) => (
               <div key={field.label} className="flex items-center justify-between py-4 border-b border-border last:border-0">
                 <div>
@@ -114,7 +134,7 @@ const SettingsPage = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-base font-semibold text-foreground">Credits remaining</p>
-              <p className="text-sm text-muted-foreground mt-0.5">Resets every 24 hours</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Each portfolio generation costs 1 credit</p>
             </div>
             <div className="text-right">
               <p className="text-3xl font-extrabold text-foreground">
@@ -158,28 +178,44 @@ const SettingsPage = () => {
               className="flex items-center gap-2.5 px-5 py-2.5 rounded-xl border border-border text-base font-medium hover:bg-secondary transition-colors"
             >
               {theme === "dark"
-                ? <><Sun className="w-4.5 h-4.5 text-amber-400" /> Light mode</>
-                : <><Moon className="w-4.5 h-4.5" /> Dark mode</>}
+                ? <><Sun className="w-4 h-4 text-amber-400" /> Light mode</>
+                : <><Moon className="w-4 h-4" /> Dark mode</>}
             </button>
           </div>
         </section>
 
-        {/* Security */}
+        {/* Export Data */}
         <section className="bg-card border border-border rounded-2xl p-6 mb-4 shadow-card">
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-blue-500" />
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Download className="w-5 h-5 text-emerald-500" />
             </div>
-            <h2 className="text-lg font-bold text-foreground">Security</h2>
-          </div>
-          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
             <div>
-              <p className="text-base font-semibold text-foreground">Password</p>
-              <p className="text-sm text-muted-foreground mt-0.5">Used to access your account</p>
+              <h2 className="text-lg font-bold text-foreground">Export Your Data</h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Download a copy of your account information</p>
             </div>
-            <span className="text-sm text-muted-foreground bg-secondary px-3 py-1.5 rounded-lg">
-              ••••••••••
-            </span>
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={handleExportProfile}
+              className="w-full flex items-center justify-between px-5 py-4 rounded-xl border border-border hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <FileJson className="w-5 h-5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                <div className="text-left">
+                  <p className="text-base font-semibold text-foreground">Profile data</p>
+                  <p className="text-sm text-muted-foreground">Name, email, and credit info as JSON</p>
+                </div>
+              </div>
+              <Download className="w-4 h-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
+            </button>
+            <div className="flex items-center gap-3 px-5 py-4 rounded-xl border border-border bg-secondary/30">
+              <FileText className="w-5 h-5 text-muted-foreground/50" />
+              <div className="text-left">
+                <p className="text-base font-semibold text-muted-foreground">Portfolio HTML files</p>
+                <p className="text-sm text-muted-foreground/70">Download individual portfolios from the History page</p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -205,7 +241,7 @@ const SettingsPage = () => {
               onClick={() => setDeleteStep("feedback")}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-destructive/40 text-destructive text-base font-semibold hover:bg-destructive hover:text-white transition-all ml-4 shrink-0"
             >
-              <Trash2 className="w-4.5 h-4.5" /> Delete
+              <Trash2 className="w-4 h-4" /> Delete
             </button>
           </div>
         </section>
@@ -318,7 +354,7 @@ const SettingsPage = () => {
                 {deleting ? (
                   <><span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> Deleting...</>
                 ) : (
-                  <><Trash2 className="w-4.5 h-4.5" /> Delete Account</>
+                  <><Trash2 className="w-4 h-4" /> Delete Account</>
                 )}
               </button>
             </div>

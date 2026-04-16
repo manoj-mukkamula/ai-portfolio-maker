@@ -12,37 +12,37 @@ const FEATURES = [
   {
     icon: Cpu,
     title: "Powered by Gemini AI",
-    desc: "Google Gemini reads your resume intelligently and fills every portfolio section with accurate, well-written content.",
+    desc: "Google Gemini reads your resume and fills every portfolio section with accurate, well-written content that sounds like you wrote it yourself.",
     color: "#6366f1",
   },
   {
     icon: Zap,
     title: "Ready in under a minute",
-    desc: "From resume upload to a live, polished portfolio in seconds. No setup, no config, no code required.",
+    desc: "From resume upload to a polished portfolio in seconds. No setup, no configuration, no coding required.",
     color: "#f59e0b",
   },
   {
     icon: Palette,
     title: "7 premium templates",
-    desc: "Hand-crafted templates across minimal, dark, editorial, and luxury design styles. Pick the one that fits your vibe.",
+    desc: "Hand-crafted templates spanning minimal, dark, editorial, and luxury design styles. Pick the one that fits your personality.",
     color: "#8b5cf6",
   },
   {
     icon: Download,
     title: "Export as HTML",
-    desc: "Download your portfolio as a single self-contained HTML file and host it anywhere, including GitHub Pages.",
+    desc: "Download your portfolio as a self-contained HTML file and host it anywhere, including GitHub Pages, for free.",
     color: "#10b981",
   },
   {
     icon: Shield,
     title: "Your data, your control",
-    desc: "Every portfolio is tied to your account. Edit, delete, or re-download them whenever you want.",
+    desc: "Every portfolio is tied to your account. Edit, delete, or re-download them whenever you need to.",
     color: "#06b6d4",
   },
   {
     icon: Upload,
     title: "PDF and DOCX support",
-    desc: "Drag in a file or paste your resume text. Both paths produce the same great result.",
+    desc: "Drag in a file or paste your resume text directly. Both paths produce the same polished result.",
     color: "#ec4899",
   },
 ];
@@ -91,24 +91,23 @@ const HOW_IT_WORKS = [
 ];
 
 const HomePage = () => {
-
   return (
     <div className="min-h-screen bg-background text-foreground" style={{ scrollBehavior: "smooth" }}>
       <SharedNavbar variant="public" />
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden py-28 sm:py-36">
+      <section className="relative overflow-hidden py-28 sm:py-40">
         <div
-          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08]"
+          className="absolute inset-0 opacity-[0.05] dark:opacity-[0.10]"
           style={{ backgroundImage: "radial-gradient(ellipse at 60% 50%, #6366f1 0%, transparent 65%)" }}
         />
         <div
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.06]"
+          className="absolute inset-0 opacity-[0.04] dark:opacity-[0.07]"
           style={{ backgroundImage: "radial-gradient(ellipse at 30% 70%, #8b5cf6 0%, transparent 65%)" }}
         />
 
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold mb-8 tracking-wide">
             <Sparkles className="w-3.5 h-3.5" />
             Powered by Google Gemini AI
           </div>
@@ -132,28 +131,38 @@ const HomePage = () => {
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold text-sm hover:opacity-90 hover:shadow-xl transition-all active:scale-[0.98]"
+              className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all duration-200 active:scale-[0.97]"
               style={{
                 background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                boxShadow: "0 4px 24px rgba(99,102,241,0.35)",
+                boxShadow: "0 4px 24px rgba(99,102,241,0.40)",
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.boxShadow = "0 8px 36px rgba(99,102,241,0.55)";
+                el.style.transform = "translateY(-2px) scale(1.02)";
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.boxShadow = "0 4px 24px rgba(99,102,241,0.40)";
+                el.style.transform = "";
               }}
             >
-              <Sparkles className="w-4 h-4" />
+              <Sparkles className="w-4.5 h-4.5 group-hover:rotate-12 transition-transform duration-200" />
               Generate my portfolio
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-border text-foreground font-medium text-sm hover:bg-secondary transition-all"
+              className="inline-flex items-center gap-2 px-7 py-4 rounded-xl border border-border text-foreground font-semibold text-base transition-all duration-200 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md hover:-translate-y-0.5"
             >
               See how it works
             </a>
           </div>
 
-          <div className="mt-10 flex items-center justify-center gap-6 text-xs text-muted-foreground flex-wrap">
+          <div className="mt-10 flex items-center justify-center gap-8 text-sm text-muted-foreground flex-wrap">
             {["No credit card required", "5 free credits to start", "Export as HTML"].map((t) => (
-              <span key={t} className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-primary" />
+              <span key={t} className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-primary" />
                 {t}
               </span>
             ))}
@@ -162,10 +171,10 @@ const HomePage = () => {
       </section>
 
       {/* ── Features ─────────────────────────────────────────────── */}
-      <section id="features" className="py-20 border-t border-border">
+      <section id="features" className="py-24 border-t border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-14">
-            <p className="text-[11px] tracking-widest text-primary font-semibold uppercase mb-3">Features</p>
+          <div className="text-center mb-16">
+            <p className="text-xs tracking-widest text-primary font-semibold uppercase mb-3">Features</p>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground mb-5 tracking-tight">
               Everything you need, nothing you don't
             </h2>
@@ -178,16 +187,32 @@ const HomePage = () => {
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="group bg-card border border-border rounded-2xl p-6 hover:border-primary/25 hover:shadow-elevated transition-all duration-300"
+                className="group bg-card border border-border rounded-2xl p-7 cursor-default transition-all duration-300"
+                style={{ transition: "transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease" }}
+                onMouseEnter={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.transform = "translateY(-6px) scale(1.015)";
+                  el.style.boxShadow = `0 20px 48px -8px ${f.color}28`;
+                  el.style.borderColor = `${f.color}45`;
+                }}
+                onMouseLeave={(e) => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.transform = "";
+                  el.style.boxShadow = "";
+                  el.style.borderColor = "";
+                }}
               >
-                <div
-                  className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-105"
-                  style={{ background: `${f.color}18`, border: `1px solid ${f.color}30` }}
-                >
-                  <f.icon className="w-5 h-5" style={{ color: f.color }} />
+                {/* Icon — centered */}
+                <div className="flex justify-center mb-5">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
+                    style={{ background: `${f.color}18`, border: `1.5px solid ${f.color}35` }}
+                  >
+                    <f.icon className="w-7 h-7" style={{ color: f.color }} />
+                  </div>
                 </div>
-                <h3 className="font-bold text-foreground text-sm mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+                <h3 className="font-bold text-foreground text-base mb-3 text-center">{f.title}</h3>
+                <p className="text-base text-muted-foreground leading-relaxed text-center">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -195,10 +220,10 @@ const HomePage = () => {
       </section>
 
       {/* ── How It Works ─────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 border-t border-border bg-secondary/30">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <p className="text-[11px] tracking-widest text-primary font-semibold uppercase mb-3">Process</p>
+      <section id="how-it-works" className="py-28 border-t border-border bg-secondary/30">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-18">
+            <p className="text-xs tracking-widest text-primary font-semibold uppercase mb-3">Process</p>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground mb-5 tracking-tight">
               From resume to portfolio in 5 steps
             </h2>
@@ -208,101 +233,54 @@ const HomePage = () => {
             </p>
           </div>
 
-          <div className="relative">
-            {/* Connector line removed — step cards use colored top-border instead */}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-4">
-              {HOW_IT_WORKS.map((step, i) => (
-                <div
-                  key={step.step}
-                  className="group relative flex flex-col items-center text-center p-5 rounded-2xl bg-card border border-border cursor-default"
-                  style={{
-                    borderTopWidth: "3px",
-                    borderTopColor: step.color,
-                    transition: "transform 0.25s ease, box-shadow 0.25s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    const el = e.currentTarget as HTMLElement;
-                    el.style.transform = "translateY(-5px)";
-                    el.style.boxShadow = `0 14px 36px -6px ${step.color}22`;
-                  }}
-                  onMouseLeave={(e) => {
-                    const el = e.currentTarget as HTMLElement;
-                    el.style.transform = "";
-                    el.style.boxShadow = "";
-                  }}
-                >
-                  {/* Icon circle */}
-                  <div className="relative mb-5 z-10">
-                    <div
-                      className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      style={{
-                        background: `radial-gradient(circle, ${step.color}30 0%, transparent 70%)`,
-                        transform: "scale(1.8)",
-                      }}
-                    />
-                    <div
-                      className="w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-105 group-hover:-translate-y-1 relative"
-                      style={{
-                        background: `linear-gradient(135deg, ${step.color}22, ${step.color}10)`,
-                        border: `1.5px solid ${step.color}40`,
-                        boxShadow: `0 4px 20px ${step.color}20`,
-                      }}
-                    >
-                      <step.icon className="w-6 h-6" style={{ color: step.color }} />
-                    </div>
-
-                    {/* Step number badge */}
-                    <div
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full text-[10px] font-extrabold text-white flex items-center justify-center"
-                      style={{ background: step.color, boxShadow: `0 2px 8px ${step.color}60` }}
-                    >
-                      {step.step}
-                    </div>
-                  </div>
-
-                  <h3 className="font-bold text-foreground text-sm mb-2 leading-snug">{step.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-3">{step.desc}</p>
-
-                  {/* Detail pill */}
-                  <span
-                    className="text-[10px] font-semibold px-2.5 py-1 rounded-full"
-                    style={{
-                      background: `${step.color}12`,
-                      color: step.color,
-                      border: `1px solid ${step.color}25`,
-                    }}
-                  >
-                    {step.detail}
-                  </span>
-                </div>
+          {/* 2-row layout: 3 on top, 2 on bottom centered */}
+          <div className="space-y-5 mb-16">
+            {/* Row 1 — 3 cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {HOW_IT_WORKS.slice(0, 3).map((step) => (
+                <StepCard key={step.step} step={step} />
+              ))}
+            </div>
+            {/* Row 2 — 2 cards, centered */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:max-w-2xl sm:mx-auto">
+              {HOW_IT_WORKS.slice(3).map((step) => (
+                <StepCard key={step.step} step={step} />
               ))}
             </div>
           </div>
 
-          {/* CTA below steps */}
-          <div className="mt-14 text-center">
+          <div className="text-center">
             <Link
               to="/register"
-              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-semibold text-sm hover:opacity-90 transition-all active:scale-[0.98]"
+              className="group inline-flex items-center gap-2.5 px-8 py-4 rounded-xl text-white font-semibold text-base transition-all duration-200 active:scale-[0.97]"
               style={{
                 background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                boxShadow: "0 4px 20px rgba(99,102,241,0.3)",
+                boxShadow: "0 4px 20px rgba(99,102,241,0.35)",
+              }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.boxShadow = "0 8px 32px rgba(99,102,241,0.5)";
+                el.style.transform = "translateY(-2px) scale(1.02)";
+              }}
+              onMouseLeave={(e) => {
+                const el = e.currentTarget as HTMLElement;
+                el.style.boxShadow = "0 4px 20px rgba(99,102,241,0.35)";
+                el.style.transform = "";
               }}
             >
-              <FileText className="w-4 h-4" />
+              <FileText className="w-4.5 h-4.5" />
               Try it with your resume
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-1 transition-transform duration-200" />
             </Link>
           </div>
         </div>
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────── */}
-      <section className="py-20 border-t border-border">
+      <section className="py-24 border-t border-border">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <div
-            className="rounded-3xl p-12 text-white relative overflow-hidden"
+            className="rounded-3xl p-14 text-white relative overflow-hidden"
             style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #0e7490 100%)" }}
           >
             <div
@@ -312,16 +290,16 @@ const HomePage = () => {
               }}
             />
             <div className="relative z-10">
-              <h2 className="text-4xl font-extrabold mb-5 tracking-tight">Ready to build your portfolio?</h2>
-              <p className="text-white/75 text-lg mb-10 max-w-md mx-auto">
+              <h2 className="text-4xl sm:text-5xl font-extrabold mb-5 tracking-tight">Ready to build your portfolio?</h2>
+              <p className="text-white/75 text-xl mb-10 max-w-md mx-auto">
                 Create a professional portfolio in minutes. Free to start, no card needed.
               </p>
               <Link
                 to="/register"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white font-semibold text-sm hover:bg-white/90 transition-all active:scale-[0.98]"
+                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl bg-white font-bold text-base transition-all duration-200 hover:bg-white/95 hover:shadow-2xl hover:-translate-y-1 active:scale-[0.97]"
                 style={{ color: "#4f46e5" }}
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4.5 h-4.5" />
                 Get started for free
               </Link>
             </div>
@@ -330,27 +308,86 @@ const HomePage = () => {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────── */}
-      <footer className="border-t border-border py-8">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
+      <footer className="border-t border-border py-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-5">
+          <div className="flex items-center gap-2.5">
             <div
-              className="w-6 h-6 rounded-lg flex items-center justify-center"
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
               style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
             >
-              <BrainCircuit className="w-3 h-3 text-white" />
+              <BrainCircuit className="w-4 h-4 text-white" />
             </div>
-            <span className="text-sm font-bold text-foreground">AI Portfolio Maker</span>
+            <span className="text-base font-bold text-foreground">AI Portfolio Maker</span>
           </div>
-          <div className="flex items-center gap-5 text-xs text-muted-foreground">
-            <Link to="/about"   className="hover:text-foreground transition-colors">About</Link>
-            <Link to="/contact" className="hover:text-foreground transition-colors">Contact</Link>
-            <Link to="/login"   className="hover:text-foreground transition-colors">Sign in</Link>
+          <div className="flex items-center gap-7 text-sm text-muted-foreground">
+            <Link to="/about"   className="hover:text-foreground transition-colors font-medium">About</Link>
+            <Link to="/contact" className="hover:text-foreground transition-colors font-medium">Contact</Link>
+            <Link to="/login"   className="hover:text-foreground transition-colors font-medium">Sign in</Link>
           </div>
-          <p className="text-xs text-muted-foreground">Built with Google Gemini AI</p>
+          <p className="text-sm text-muted-foreground">Built with Google Gemini AI</p>
         </div>
       </footer>
     </div>
   );
 };
+
+// ── Step Card Sub-component ───────────────────────────────────────────────────
+const StepCard = ({ step }: { step: typeof HOW_IT_WORKS[0] }) => (
+  <div
+    className="group relative flex flex-col items-center text-center p-7 rounded-2xl bg-card border border-border cursor-default"
+    style={{
+      borderTopWidth: "3px",
+      borderTopColor: step.color,
+      transition: "transform 0.25s ease, box-shadow 0.25s ease",
+    }}
+    onMouseEnter={(e) => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.transform = "translateY(-6px)";
+      el.style.boxShadow = `0 20px 48px -8px ${step.color}28`;
+    }}
+    onMouseLeave={(e) => {
+      const el = e.currentTarget as HTMLElement;
+      el.style.transform = "";
+      el.style.boxShadow = "";
+    }}
+  >
+    {/* Icon circle */}
+    <div className="relative mb-5 z-10">
+      <div
+        className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-translate-y-1"
+        style={{
+          background: `linear-gradient(135deg, ${step.color}25, ${step.color}12)`,
+          border: `1.5px solid ${step.color}45`,
+          boxShadow: `0 4px 20px ${step.color}22`,
+        }}
+      >
+        <step.icon className="w-7 h-7" style={{ color: step.color }} />
+      </div>
+
+      {/* Step number badge */}
+      <div
+        className="absolute -top-2 -right-2 w-6 h-6 rounded-full text-xs font-extrabold text-white flex items-center justify-center"
+        style={{ background: step.color, boxShadow: `0 2px 8px ${step.color}60` }}
+      >
+        {step.step}
+      </div>
+    </div>
+
+    <h3 className="font-bold text-foreground text-base mb-3 leading-snug">{step.title}</h3>
+    <p className="text-sm text-muted-foreground leading-relaxed mb-4">{step.desc}</p>
+
+    {/* Detail pill */}
+    <span
+      className="text-xs font-semibold px-3 py-1.5 rounded-full"
+      style={{
+        background: `${step.color}12`,
+        color: step.color,
+        border: `1px solid ${step.color}28`,
+      }}
+    >
+      {step.detail}
+    </span>
+  </div>
+);
 
 export default HomePage;

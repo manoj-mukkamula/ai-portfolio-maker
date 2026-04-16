@@ -1,10 +1,10 @@
 // src/pages/LoginPage.tsx
-// Added SharedNavbar (auth variant) for consistent brand + home link
+// Removed theme-toggle icon from auth navbar for login page
+// Added proper light/dark styling for background blobs
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import SharedNavbar from "@/components/SharedNavbar";
 import { BrainCircuit, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,17 +36,38 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <SharedNavbar variant="auth" />
+      {/* Minimal brand-only header — no theme toggle on auth pages */}
+      <header className="border-b border-border bg-card/90 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105"
+              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+            >
+              <BrainCircuit className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-foreground text-base tracking-tight hidden sm:block">
+              AI Portfolio Maker
+            </span>
+          </Link>
+          <Link
+            to="/"
+            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-secondary"
+          >
+            Back to home
+          </Link>
+        </div>
+      </header>
 
-      {/* Subtle background blobs */}
+      {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
-          className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full opacity-[0.04]"
-          style={{ background: "radial-gradient(circle, #6366f1, transparent)" }}
+          className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.07), transparent)" }}
         />
         <div
-          className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full opacity-[0.03]"
-          style={{ background: "radial-gradient(circle, #8b5cf6, transparent)" }}
+          className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(139,92,246,0.05), transparent)" }}
         />
       </div>
 
@@ -61,7 +82,7 @@ const LoginPage = () => {
               <BrainCircuit className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Welcome back</h1>
-            <p className="text-muted-foreground text-base mt-2">Sign in to your account</p>
+            <p className="text-muted-foreground text-base mt-2">Sign in to your account to continue</p>
           </div>
 
           {/* Form */}
@@ -111,13 +132,13 @@ const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3.5 rounded-xl text-white font-semibold text-base flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 shadow-sm"
+              className="w-full py-3.5 rounded-xl text-white font-semibold text-base flex items-center justify-center gap-2 transition-all duration-200 disabled:opacity-50 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98]"
               style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <>Log in <ArrowRight className="w-4 h-4" /></>
+                <>Sign in <ArrowRight className="w-4 h-4" /></>
               )}
             </button>
           </form>
@@ -126,7 +147,7 @@ const LoginPage = () => {
           <p className="text-center text-sm text-muted-foreground mt-6">
             Don&apos;t have an account?{" "}
             <Link to="/register" className="text-primary font-semibold hover:underline">
-              Sign up here
+              Sign up for free
             </Link>
           </p>
 

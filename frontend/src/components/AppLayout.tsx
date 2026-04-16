@@ -1,8 +1,6 @@
 // src/components/AppLayout.tsx
 // Stable layout wrapper for all authenticated pages.
-// - Sidebar (desktop) + top navbar with profile dropdown
-// - Never renders empty — children always get the full main area
-// - Increased font sizes and spacing for premium feel
+// Profile dropdown: "Account settings" renamed to "Preferences"
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -163,7 +161,7 @@ const ProfileDropdown = () => {
                 }}
               />
             </div>
-            <p className="text-xs text-muted-foreground mt-1.5">Resets every 24 hours</p>
+            <p className="text-xs text-muted-foreground mt-1.5">Each generation uses 1 credit</p>
           </div>
 
           {/* Actions */}
@@ -172,7 +170,7 @@ const ProfileDropdown = () => {
               onClick={() => close(() => navigate("/settings"))}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-foreground hover:bg-secondary transition-colors"
             >
-              <Settings className="w-4 h-4 text-muted-foreground" /> Account settings
+              <Settings className="w-4 h-4 text-muted-foreground" /> Preferences
             </button>
             <button
               onClick={() => close(() => { logout(); navigate("/login"); })}
@@ -208,7 +206,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top navbar */}
         <header className="flex items-center justify-between px-4 lg:px-6 h-16 border-b border-border bg-card sticky top-0 z-40 shrink-0">
-          {/* Mobile: hamburger + brand — tapping brand goes to home */}
+          {/* Mobile: hamburger + brand */}
           <div className="flex items-center gap-3 lg:hidden">
             <button
               onClick={() => setMobileOpen(true)}
@@ -227,7 +225,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             </Link>
           </div>
 
-          {/* Desktop: spacer to push right content */}
+          {/* Desktop: spacer */}
           <div className="hidden lg:block flex-1" />
 
           {/* Right side */}
@@ -248,8 +246,8 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               className="p-2.5 rounded-xl hover:bg-secondary transition-colors"
             >
               {theme === "dark"
-                ? <Sun className="w-4.5 h-4.5 text-amber-400" />
-                : <Moon className="w-4.5 h-4.5 text-muted-foreground" />}
+                ? <Sun className="w-4 h-4 text-amber-400" />
+                : <Moon className="w-4 h-4 text-muted-foreground" />}
             </button>
 
             <ProfileDropdown />

@@ -1,6 +1,6 @@
 // src/pages/HistoryPage.tsx
-// Fixed: portfolioApi.history() (was incorrectly .getAll())
-// Filters: All / Recent (7d) / Starred | Search | Delete dialog | Larger text
+// Updated: "Recent" tab now shows portfolios from this week only (not all)
+// Filters: All / This Week / Starred | Search | Delete dialog
 
 import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,7 @@ import AppLayout from "@/components/AppLayout";
 import { portfolioApi } from "@/lib/api";
 import {
   Eye, Pencil, Trash2, Sparkles, Clock, Star,
-  LayoutGrid, AlertTriangle, X, Search,
+  LayoutGrid, AlertTriangle, X, Search, Calendar,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,16 +20,16 @@ interface Portfolio {
 }
 
 const TEMPLATE_META: Record<string, { bg: string; color: string; label: string }> = {
-  "glass-terminal":   { bg: "#060a12", color: "#00ff88", label: "Glass Terminal"   },
-  "brutalist-grid":   { bg: "#0a0a0a", color: "#ffdd00", label: "Brutalist Grid"   },
-  "aurora-luxury":    { bg: "#1a0533", color: "#a78bfa", label: "Aurora Luxury"    },
-  "swiss-precision":  { bg: "#f7f4ef", color: "#0050ff", label: "Swiss Precision"  },
-  "obsidian-code":    { bg: "#1e1e2e", color: "#cba6f7", label: "Obsidian Code"    },
-  "kinetic-magazine": { bg: "#faf8f3", color: "#c84b11", label: "Kinetic Magazine" },
+  "glass-terminal":    { bg: "#060a12", color: "#00ff88", label: "Glass Terminal"    },
+  "brutalist-grid":    { bg: "#0a0a0a", color: "#ffdd00", label: "Brutalist Grid"    },
+  "aurora-luxury":     { bg: "#1a0533", color: "#a78bfa", label: "Aurora Luxury"     },
+  "swiss-precision":   { bg: "#f7f4ef", color: "#0050ff", label: "Swiss Precision"   },
+  "obsidian-code":     { bg: "#1e1e2e", color: "#cba6f7", label: "Obsidian Code"     },
+  "kinetic-magazine":  { bg: "#faf8f3", color: "#c84b11", label: "Kinetic Magazine"  },
   "deep-dark-minimal": { bg: "#090910", color: "#4f8ef7", label: "Deep Dark Minimal" },
 };
 
-type Filter = "all" | "recent" | "starred";
+type Filter = "all" | "thisweek" | "starred";
 
 const getFavorites = (): Set<string> => {
   try {
@@ -94,7 +94,7 @@ const HistoryPage = () => {
 
   useEffect(() => {
     portfolioApi
-      .history()                                          // ← FIXED: was .getAll()
+      .history()
       .then((res) => setPortfolios(res.data.portfolios ?? []))
       .catch(() => toast({ title: "Could not load history", description: "Try refreshing the page.", variant: "destructive" }))
       .finally(() => setLoading(false));
@@ -125,12 +125,12 @@ const HistoryPage = () => {
     }
   };
 
-  const isRecent = (createdAt: string) =>
+  const isThisWeek = (createdAt: string) =>
     Date.now() - new Date(createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
 
   const filtered = portfolios.filter((p) => {
-    if (filter === "recent"  && !isRecent(p.createdAt))  return false;
-    if (filter === "starred" && !favorites.has(p._id))   return false;
+    if (filter === "thisweek" && !isThisWeek(p.createdAt)) return false;
+    if (filter === "starred"  && !favorites.has(p._id))    return false;
     if (search.trim()) {
       const label = TEMPLATE_META[p.templateName]?.label ?? p.templateName;
       if (!label.toLowerCase().includes(search.toLowerCase())) return false;
@@ -138,10 +138,10 @@ const HistoryPage = () => {
     return true;
   });
 
-  const FILTERS: { key: Filter; label: string; count: number }[] = [
-    { key: "all",     label: "All",     count: portfolios.length },
-    { key: "recent",  label: "Recent",  count: portfolios.filter((p) => isRecent(p.createdAt)).length },
-    { key: "starred", label: "Starred", count: favorites.size },
+  const FILTERS: { key: Filter; label: string; icon: React.ElementType; count: number }[] = [
+    { key: "all",      label: "All Portfolios", icon: LayoutGrid, count: portfolios.length },
+    { key: "thisweek", label: "This Week",       icon: Calendar,   count: portfolios.filter((p) => isThisWeek(p.createdAt)).length },
+    { key: "starred",  label: "Starred",         icon: Star,       count: favorites.size },
   ];
 
   return (
@@ -161,7 +161,7 @@ const HistoryPage = () => {
           <div className="grid grid-cols-3 gap-3 mb-7">
             {[
               { label: "Total",     value: portfolios.length, color: "#6366f1", icon: LayoutGrid },
-              { label: "This week", value: portfolios.filter((p) => isRecent(p.createdAt)).length, color: "#10b981", icon: Sparkles },
+              { label: "This week", value: portfolios.filter((p) => isThisWeek(p.createdAt)).length, color: "#10b981", icon: Sparkles },
               { label: "Starred",   value: favorites.size, color: "#f59e0b", icon: Star },
             ].map((s) => (
               <div key={s.label} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3 shadow-card">
@@ -190,6 +190,7 @@ const HistoryPage = () => {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
+                <f.icon className="w-3.5 h-3.5" />
                 {f.label}
                 <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                   filter === f.key ? "bg-primary/15 text-primary" : "bg-border/80 text-muted-foreground"
@@ -224,16 +225,20 @@ const HistoryPage = () => {
             <div className="w-16 h-16 rounded-2xl bg-secondary flex items-center justify-center mx-auto mb-5">
               {filter === "starred"
                 ? <Star className="w-8 h-8 text-muted-foreground" />
+                : filter === "thisweek"
+                ? <Calendar className="w-8 h-8 text-muted-foreground" />
                 : <LayoutGrid className="w-8 h-8 text-muted-foreground" />}
             </div>
             <p className="text-lg font-semibold text-foreground mb-2">
-              {filter === "starred" ? "No starred portfolios" : filter === "recent" ? "Nothing this week" : "No portfolios found"}
+              {filter === "starred"   ? "No starred portfolios"
+               : filter === "thisweek" ? "Nothing generated this week"
+               : "No portfolios found"}
             </p>
             <p className="text-base text-muted-foreground">
               {filter === "starred"
                 ? "Click the star on any portfolio to bookmark it here."
-                : filter === "recent"
-                ? "Portfolios you generate this week will appear here."
+                : filter === "thisweek"
+                ? "Portfolios you generate this week will show up here."
                 : "Generate your first portfolio to see it listed here."}
             </p>
           </div>
@@ -265,7 +270,7 @@ const HistoryPage = () => {
                     <div className="flex items-center gap-2 mt-0.5">
                       <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                       <span className="text-sm text-muted-foreground">{dateStr} at {timeStr}</span>
-                      {isRecent(p.createdAt) && (
+                      {isThisWeek(p.createdAt) && (
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400 font-semibold">
                           New
                         </span>
