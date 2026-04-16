@@ -9,13 +9,15 @@
 //  - Auth logic, routing, and layout structure all unchanged
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   Eye, EyeOff, ArrowRight, Loader2,
   Sparkles, Zap, FileText, Download, Star, Shield,
+  BrainCircuit, Sun, Moon,
 } from "lucide-react";
 
 const InputField = ({
@@ -213,9 +215,47 @@ const AuthPage = () => {
   const formIn  = { opacity: 0, x: 20 };
   const formOut = { opacity: 0, x: -20 };
 
+  const { theme, toggleTheme } = useTheme();
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4"
+    <div className="min-h-screen flex flex-col"
       style={{ background: "linear-gradient(135deg, #080c18 0%, #0e1525 60%, #0a1020 100%)" }}>
+
+      {/* Top navbar — consistent brand + home link */}
+      <header className="shrink-0 border-b border-white/[0.08] bg-transparent">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105"
+              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
+            >
+              <BrainCircuit className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-white text-base tracking-tight hidden sm:block whitespace-nowrap">
+              AI Portfolio Maker
+            </span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark"
+                ? <Sun className="w-4 h-4 text-amber-400" />
+                : <Moon className="w-4 h-4 text-white/60" />}
+            </button>
+            <Link
+              to="/"
+              className="text-sm font-medium text-white/60 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/10"
+            >
+              Back to home
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex-1 flex items-center justify-center p-4">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full"
           style={{ background: "radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 70%)" }} />
@@ -403,6 +443,7 @@ const AuthPage = () => {
         </motion.div>
       </motion.div>
     </div>
+      </div>
   );
 };
 

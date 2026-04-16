@@ -148,10 +148,10 @@ const HistoryPage = () => {
     <AppLayout>
       <div className="max-w-4xl mx-auto animate-fade-in">
         {/* Header */}
-        <div className="mb-8">
-          <p className="text-sm tracking-widest text-primary font-semibold uppercase">Portfolio History</p>
-          <h1 className="text-3xl font-bold text-foreground mt-1">Your Portfolios</h1>
-          <p className="text-base text-muted-foreground mt-1.5">
+        <div className="mb-9">
+          <p className="text-xs tracking-widest text-primary font-semibold uppercase">Portfolio History</p>
+          <h1 className="text-4xl font-extrabold text-foreground mt-1.5 tracking-tight">Your Portfolios</h1>
+          <p className="text-lg text-muted-foreground mt-2">
             Browse, preview, edit, or delete your generated portfolios.
           </p>
         </div>

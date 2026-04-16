@@ -1,11 +1,11 @@
 // src/pages/HomePage.tsx
 
 import { Link } from "react-router-dom";
-import { useTheme } from "@/contexts/ThemeContext";
+import SharedNavbar from "@/components/SharedNavbar";
 import {
   Sparkles, Upload, Cpu, Download, Palette,
-  Zap, Shield, Sun, Moon, BrainCircuit,
-  ArrowRight, Check, FileText, Eye,
+  Zap, Shield, ArrowRight, Check, FileText, Eye,
+  BrainCircuit,
 } from "lucide-react";
 
 const FEATURES = [
@@ -91,56 +91,13 @@ const HOW_IT_WORKS = [
 ];
 
 const HomePage = () => {
-  const { theme, toggleTheme } = useTheme();
 
   return (
     <div className="min-h-screen bg-background text-foreground" style={{ scrollBehavior: "smooth" }}>
-      {/* Navbar */}
-      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-            >
-              <BrainCircuit className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-foreground text-sm">AI Portfolio Maker</span>
-          </Link>
-
-          <nav className="hidden sm:flex items-center gap-6">
-            <a href="#features"     className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Features</a>
-            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">How it works</a>
-            <Link to="/about"   className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">About</Link>
-            <Link to="/contact" className="text-sm text-muted-foreground hover:text-foreground transition-colors font-medium">Contact</Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-secondary transition-colors"
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {theme === "dark"
-                ? <Sun className="w-4 h-4 text-amber-400" />
-                : <Moon className="w-4 h-4 text-muted-foreground" />}
-            </button>
-            <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2">
-              Log in
-            </Link>
-            <Link
-              to="/register"
-              className="text-sm font-semibold text-white px-4 py-2 rounded-xl hover:opacity-90 transition-all active:scale-[0.98]"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-            >
-              Get started
-            </Link>
-          </div>
-        </div>
-      </header>
+      <SharedNavbar variant="public" />
 
       {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden py-24 sm:py-32">
+      <section className="relative overflow-hidden py-28 sm:py-36">
         <div
           className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08]"
           style={{ backgroundImage: "radial-gradient(ellipse at 60% 50%, #6366f1 0%, transparent 65%)" }}
@@ -156,7 +113,7 @@ const HomePage = () => {
             Powered by Google Gemini AI
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground leading-tight mb-6">
+          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-foreground leading-[1.08] tracking-tight mb-7">
             Your resume, turned into
             <br />
             <span
@@ -167,7 +124,7 @@ const HomePage = () => {
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-xl sm:text-2xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
             Upload your resume. Pick a template. Let AI build the rest.
             Get a professional portfolio website in under a minute, no coding needed.
           </p>
@@ -209,10 +166,10 @@ const HomePage = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="text-[11px] tracking-widest text-primary font-semibold uppercase mb-3">Features</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-4">
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground mb-5 tracking-tight">
               Everything you need, nothing you don't
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto text-base">
+            <p className="text-muted-foreground max-w-xl mx-auto text-lg leading-relaxed">
               Built for students and professionals who want a great portfolio without spending hours on design.
             </p>
           </div>
@@ -242,36 +199,39 @@ const HomePage = () => {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <p className="text-[11px] tracking-widest text-primary font-semibold uppercase mb-3">Process</p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground mb-4">
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground mb-5 tracking-tight">
               From resume to portfolio in 5 steps
             </h2>
-            <p className="text-muted-foreground max-w-xl mx-auto text-base">
+            <p className="text-muted-foreground max-w-xl mx-auto text-lg leading-relaxed">
               No manual data entry. No design skills needed.
               Upload once and let the AI handle everything else.
             </p>
           </div>
 
           <div className="relative">
-            {/* Horizontal connector line (desktop only) */}
-            <div
-              className="hidden lg:block absolute top-[52px] left-[10%] right-[10%] h-px"
-              style={{ background: "linear-gradient(90deg, transparent, #6366f1, #8b5cf6, #06b6d4, transparent)" }}
-            />
+            {/* Connector line removed — step cards use colored top-border instead */}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 lg:gap-4">
               {HOW_IT_WORKS.map((step, i) => (
                 <div
                   key={step.step}
-                  className="group relative flex flex-col items-center text-center"
+                  className="group relative flex flex-col items-center text-center p-5 rounded-2xl bg-card border border-border cursor-default"
+                  style={{
+                    borderTopWidth: "3px",
+                    borderTopColor: step.color,
+                    transition: "transform 0.25s ease, box-shadow 0.25s ease",
+                  }}
+                  onMouseEnter={(e) => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.transform = "translateY(-5px)";
+                    el.style.boxShadow = `0 14px 36px -6px ${step.color}22`;
+                  }}
+                  onMouseLeave={(e) => {
+                    const el = e.currentTarget as HTMLElement;
+                    el.style.transform = "";
+                    el.style.boxShadow = "";
+                  }}
                 >
-                  {/* Vertical connector (mobile only) */}
-                  {i < HOW_IT_WORKS.length - 1 && (
-                    <div
-                      className="lg:hidden absolute left-1/2 -translate-x-1/2 top-[80px] w-px h-10"
-                      style={{ background: "linear-gradient(180deg, #6366f1, transparent)" }}
-                    />
-                  )}
-
                   {/* Icon circle */}
                   <div className="relative mb-5 z-10">
                     <div
@@ -352,8 +312,8 @@ const HomePage = () => {
               }}
             />
             <div className="relative z-10">
-              <h2 className="text-3xl font-extrabold mb-4">Ready to build your portfolio?</h2>
-              <p className="text-white/75 text-base mb-8 max-w-md mx-auto">
+              <h2 className="text-4xl font-extrabold mb-5 tracking-tight">Ready to build your portfolio?</h2>
+              <p className="text-white/75 text-lg mb-10 max-w-md mx-auto">
                 Create a professional portfolio in minutes. Free to start, no card needed.
               </p>
               <Link

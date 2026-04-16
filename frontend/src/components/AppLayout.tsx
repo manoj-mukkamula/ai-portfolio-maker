@@ -208,7 +208,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top navbar */}
         <header className="flex items-center justify-between px-4 lg:px-6 h-16 border-b border-border bg-card sticky top-0 z-40 shrink-0">
-          {/* Mobile: hamburger + brand */}
+          {/* Mobile: hamburger + brand — tapping brand goes to home */}
           <div className="flex items-center gap-3 lg:hidden">
             <button
               onClick={() => setMobileOpen(true)}
@@ -216,7 +216,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             >
               <Menu className="w-5 h-5 text-foreground" />
             </button>
-            <div className="flex items-center gap-2">
+            <Link to="/" className="flex items-center gap-2">
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
@@ -224,7 +224,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 <BrainCircuit className="w-4 h-4 text-white" />
               </div>
               <span className="text-sm font-bold text-foreground">AI Portfolio Maker</span>
-            </div>
+            </Link>
           </div>
 
           {/* Desktop: spacer to push right content */}

@@ -66,11 +66,11 @@ const AppSidebar = () => {
       </button>
 
       <div className="flex flex-col flex-1 px-3 py-4 gap-1 overflow-hidden">
-        {/* Brand */}
+        {/* Brand — links to home page */}
         <Link
-          to="/dashboard"
+          to="/"
           className={`flex items-center gap-3 mb-6 px-2 py-2 rounded-xl overflow-hidden hover:bg-secondary transition-colors ${collapsed ? "justify-center" : ""}`}
-          title="AI Portfolio Maker"
+          title="AI Portfolio Maker — Home"
         >
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"

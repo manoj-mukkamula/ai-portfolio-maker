@@ -69,10 +69,10 @@ const SettingsPage = () => {
     <AppLayout>
       <div className="max-w-2xl mx-auto animate-fade-in">
         {/* Header */}
-        <div className="mb-9">
-          <p className="text-sm tracking-widest text-primary font-semibold uppercase">Account</p>
-          <h1 className="text-3xl font-bold text-foreground mt-1">Settings</h1>
-          <p className="text-base text-muted-foreground mt-1.5">
+        <div className="mb-10">
+          <p className="text-xs tracking-widest text-primary font-semibold uppercase">Account</p>
+          <h1 className="text-4xl font-extrabold text-foreground mt-1.5 tracking-tight">Settings</h1>
+          <p className="text-lg text-muted-foreground mt-2">
             Manage your account preferences and security.
           </p>
         </div>

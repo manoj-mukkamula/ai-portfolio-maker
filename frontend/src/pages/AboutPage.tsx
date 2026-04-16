@@ -1,12 +1,12 @@
 // src/pages/AboutPage.tsx
 import { Link } from "react-router-dom";
-import AppNavbar from "@/components/AppNavbar";
+import SharedNavbar from "@/components/SharedNavbar";
 import { Sparkles, Cpu, Code2, GraduationCap, ArrowRight } from "lucide-react";
 
 const AboutPage = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <AppNavbar backOnly />
+      <SharedNavbar variant="public" />
 
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-16">
         {/* Header */}
@@ -37,7 +37,7 @@ const AboutPage = () => {
           </p>
           <p className="text-base text-muted-foreground leading-relaxed">
             Powered by Google Gemini, it reads your resume and automatically extracts your name, skills,
-            projects, experience, and education — then drops that content into a hand-crafted HTML template.
+            projects, experience, and education, then drops that content into a hand-crafted HTML template.
             The result is a portfolio that feels personal, even though the heavy lifting is handled by AI.
           </p>
         </div>
@@ -59,7 +59,7 @@ const AboutPage = () => {
               { label: "Hosting",   value: "Deployable on any Node host"         },
               { label: "Templates", value: "7 custom HTML/CSS designs"           },
             ].map((item) => (
-              <div key={item.label} className="bg-secondary/50 rounded-xl p-4">
+              <div key={item.label} className="bg-secondary/50 rounded-xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated hover:bg-secondary/80 cursor-default">
                 <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">{item.label}</p>
                 <p className="text-sm font-medium text-foreground">{item.value}</p>
               </div>

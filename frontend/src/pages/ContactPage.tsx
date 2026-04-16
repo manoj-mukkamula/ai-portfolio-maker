@@ -1,8 +1,8 @@
 // src/pages/ContactPage.tsx
-// Uses shared AppNavbar, larger text, fixed mailto with fallback toast
+// Uses SharedNavbar (public variant) for consistent navigation with home link
 
 import { useState } from "react";
-import AppNavbar from "@/components/AppNavbar";
+import SharedNavbar from "@/components/SharedNavbar";
 import { Github, Mail, Linkedin, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -57,7 +57,7 @@ const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <AppNavbar backOnly />
+      <SharedNavbar variant="public" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
         {/* Header */}

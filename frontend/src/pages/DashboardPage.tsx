@@ -159,9 +159,9 @@ const DashboardPage = () => {
           />
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
             <div>
-              <p className="text-white/65 text-sm font-medium tracking-widest uppercase mb-1.5">Welcome back</p>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">Hey, {firstName}</h1>
-              <p className="text-white/70 text-base mt-2">
+              <p className="text-white/65 text-xs font-semibold tracking-widest uppercase mb-2">Welcome back</p>
+              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight">Hey, {firstName}</h1>
+              <p className="text-white/70 text-lg mt-2.5">
                 {credits > 0
                   ? `You have ${credits} credit${credits !== 1 ? "s" : ""} available today.`
                   : "Your credits will reset in the next cycle."}
@@ -225,7 +225,7 @@ const DashboardPage = () => {
         <div>
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-xl font-bold text-foreground">Recent Portfolios</h2>
+              <h2 className="text-2xl font-bold text-foreground">Recent Portfolios</h2>
               {totalPortfolios > 6 && (
                 <p className="text-sm text-muted-foreground mt-0.5">Showing 6 of {totalPortfolios}</p>
               )}
