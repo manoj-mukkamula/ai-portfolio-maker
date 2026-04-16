@@ -1,11 +1,12 @@
 // src/pages/PreviewPage.tsx
-// Key changes:
-//  - Reads ?loading=1 to show skeleton loader first, then fades in portfolio
-//  - Skeleton → content transition is smooth with opacity/scale animation
-//  - iframe uses sandbox="allow-same-origin allow-scripts allow-popups allow-top-navigation"
-//    so links inside the portfolio open in a new tab correctly
-//  - Dark mode toggle in navbar
-//  - "Account info" replaced with working "Settings" link
+// Fixed:
+//  - Nav anchor links (#section) now scroll within the iframe (not open new tab)
+//  - External links (http/https) open in new tab correctly
+//  - Inject a script into the iframe that intercepts clicks:
+//      * Internal anchor (#...) -> scrolls within iframe
+//      * External URL -> opens in _blank
+//  - skeleton loading continues until portfolio is ready, then fades in
+//  - Download button added to navbar
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
@@ -20,7 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 // ─── Skeleton loader ──────────────────────────────────────────────────────────
 const PortfolioSkeleton = () => (
   <div className="w-full h-full bg-background animate-pulse flex flex-col" style={{ minHeight: "calc(100vh - 56px)" }}>
-    {/* Hero skeleton */}
     <div
       className="flex flex-col items-center justify-center gap-5 py-24 px-8"
       style={{ background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e3a5f 100%)" }}
@@ -34,18 +34,13 @@ const PortfolioSkeleton = () => (
         <div className="w-20 h-8 rounded-lg bg-white/10" />
       </div>
     </div>
-
-    {/* Content skeleton */}
     <div className="max-w-4xl mx-auto w-full px-6 py-12 space-y-10">
-      {/* About section */}
       <div className="space-y-3">
         <div className="w-32 h-5 rounded bg-secondary" />
         <div className="w-full h-3 rounded bg-secondary" />
         <div className="w-5/6 h-3 rounded bg-secondary" />
         <div className="w-4/6 h-3 rounded bg-secondary" />
       </div>
-
-      {/* Skills section */}
       <div className="space-y-3">
         <div className="w-24 h-5 rounded bg-secondary" />
         <div className="flex flex-wrap gap-2">
@@ -54,8 +49,6 @@ const PortfolioSkeleton = () => (
           ))}
         </div>
       </div>
-
-      {/* Projects section */}
       <div className="space-y-4">
         <div className="w-28 h-5 rounded bg-secondary" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -64,8 +57,6 @@ const PortfolioSkeleton = () => (
           ))}
         </div>
       </div>
-
-      {/* Experience section */}
       <div className="space-y-3">
         <div className="w-36 h-5 rounded bg-secondary" />
         {[1, 2].map((i) => (
@@ -80,8 +71,6 @@ const PortfolioSkeleton = () => (
         ))}
       </div>
     </div>
-
-    {/* Loading message */}
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
       <div
         className="flex items-center gap-3 px-5 py-3 rounded-2xl shadow-modal"
@@ -90,29 +79,62 @@ const PortfolioSkeleton = () => (
           border: "1px solid rgba(99,102,241,0.4)",
         }}
       >
-        <div
-          className="w-4 h-4 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin"
-        />
+        <div className="w-4 h-4 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
         <span className="text-white text-sm font-medium">Rendering your portfolio...</span>
       </div>
     </div>
   </div>
 );
 
+// ─── Link-intercept script injected into the iframe ──────────────────────────
+// This script makes nav anchor links scroll within the iframe,
+// while any full URL (http/https) opens in a real new browser tab.
+const LINK_INTERCEPT_SCRIPT = `
+<script>
+(function() {
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href) return;
+
+    // Internal anchor link — scroll within the page
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      e.stopPropagation();
+      var target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    // External URL — open in a real new tab via window.open
+    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+  }, true);
+})();
+</script>
+`;
+
 // ─── Main component ───────────────────────────────────────────────────────────
 const PreviewPage = () => {
-  const { id }       = useParams<{ id: string }>();
-  const navigate     = useNavigate();
-  const [params]     = useSearchParams();
-  const { toast }    = useToast();
+  const { id }    = useParams<{ id: string }>();
+  const navigate  = useNavigate();
+  const [params]  = useSearchParams();
+  const { toast } = useToast();
   const { theme, toggleTheme } = useTheme();
 
-  const [html, setHtml]               = useState("");
-  const [loading, setLoading]         = useState(true);
-  const [showSkeleton, setShowSkeleton] = useState(params.get("loading") === "1");
-  const [contentVisible, setContentVisible] = useState(false);
-  const [templateName, setTemplateName] = useState("");
-  const [copied, setCopied]           = useState(false);
+  const [html, setHtml]                         = useState("");
+  const [loading, setLoading]                   = useState(true);
+  const [showSkeleton, setShowSkeleton]         = useState(params.get("loading") === "1");
+  const [contentVisible, setContentVisible]     = useState(false);
+  const [templateName, setTemplateName]         = useState("");
+  const [copied, setCopied]                     = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -129,10 +151,10 @@ const PreviewPage = () => {
         setLoading(false);
 
         if (params.get("loading") === "1") {
-          // Show skeleton for 1.8s then fade in content
+          // Show skeleton until portfolio data is ready, then a short fade-in
           setTimeout(() => {
             setShowSkeleton(false);
-            setTimeout(() => setContentVisible(true), 100); // tiny delay for CSS transition start
+            setTimeout(() => setContentVisible(true), 120);
           }, 1800);
         } else {
           setContentVisible(true);
@@ -174,18 +196,17 @@ const PreviewPage = () => {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 
-  // Inject base target="_blank" into the portfolio HTML so ALL links open in new tab
+  // Inject the link-intercept script right after <head> open tag
+  // This gives us proper behavior for both anchor links and external URLs
   const safeHtml = html
-    ? html.replace(/<head([^>]*)>/, `<head$1><base target="_blank" rel="noopener noreferrer">`)
+    ? html.replace(/<head([^>]*)>/, `<head$1>${LINK_INTERCEPT_SCRIPT}`)
     : "";
 
-  if (loading) {
+  if (loading && !showSkeleton) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div
-            className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4"
-          />
+          <div className="w-10 h-10 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
           <p className="text-sm text-muted-foreground">Loading preview...</p>
         </div>
       </div>
@@ -235,7 +256,6 @@ const PreviewPage = () => {
 
         {/* Right */}
         <div className="flex items-center gap-1.5">
-          {/* Dark mode toggle */}
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
@@ -249,7 +269,7 @@ const PreviewPage = () => {
           <button
             onClick={handleFullScreen}
             className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary border border-transparent hover:border-border transition-all"
-            title="Open in a new tab"
+            title="Open in a new tab (no iframe restrictions)"
           >
             <Eye className="w-3.5 h-3.5" />
             Full Screen
@@ -285,14 +305,14 @@ const PreviewPage = () => {
 
       {/* Content area */}
       <div className="flex-1 relative" style={{ minHeight: "calc(100vh - 56px)" }}>
-        {/* Skeleton layer */}
+        {/* Skeleton overlay — shown while loading=1 */}
         {showSkeleton && (
           <div className="absolute inset-0 z-10">
             <PortfolioSkeleton />
           </div>
         )}
 
-        {/* Portfolio iframe — fades in after skeleton */}
+        {/* Portfolio iframe */}
         <div
           className="absolute inset-0 transition-all duration-700"
           style={{
@@ -305,7 +325,12 @@ const PreviewPage = () => {
             title="Portfolio Preview"
             className="w-full border-0"
             style={{ height: "calc(100vh - 56px)" }}
-            sandbox="allow-same-origin allow-scripts allow-popups allow-top-navigation-by-user-activation"
+            // allow-popups: lets window.open() calls (from our injected script) work
+            // allow-scripts: portfolio animations + our intercept script
+            // allow-same-origin: fonts and assets load correctly
+            // allow-forms: contact forms work
+            // No allow-top-navigation: prevents iframe from redirecting the whole app
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           />
         </div>
       </div>

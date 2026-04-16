@@ -174,7 +174,7 @@ const HomePage = () => {
       <section id="features" className="py-24 border-t border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
-            <p className="text-xs tracking-widest text-primary font-semibold uppercase mb-3">Features</p>
+            <p className="text-sm tracking-widest text-primary font-bold uppercase mb-4">Features</p>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground mb-5 tracking-tight">
               Everything you need, nothing you don't
             </h2>
@@ -222,8 +222,8 @@ const HomePage = () => {
       {/* ── How It Works ─────────────────────────────────────────── */}
       <section id="how-it-works" className="py-28 border-t border-border bg-secondary/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-18">
-            <p className="text-xs tracking-widest text-primary font-semibold uppercase mb-3">Process</p>
+          <div className="text-center mb-14">
+            <p className="text-sm tracking-widest text-primary font-bold uppercase mb-4">Process</p>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-foreground mb-5 tracking-tight">
               From resume to portfolio in 5 steps
             </h2>
@@ -234,7 +234,7 @@ const HomePage = () => {
           </div>
 
           {/* 2-row layout: 3 on top, 2 on bottom centered */}
-          <div className="space-y-5 mb-16">
+          <div className="space-y-5 mb-16 mt-2">
             {/* Row 1 — 3 cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {HOW_IT_WORKS.slice(0, 3).map((step) => (

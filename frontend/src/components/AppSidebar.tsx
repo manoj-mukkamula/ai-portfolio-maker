@@ -1,12 +1,13 @@
 // src/components/AppSidebar.tsx
-// Collapsible sidebar — larger text/icons, Settings link added, cleaner spacing
+// Improved: collapse toggle is now a clearly visible, professional button
+// with label text when expanded and a proper icon-only style when collapsed
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   LayoutGrid, Sparkles, History, Plus, LogOut,
-  Zap, Sun, Moon, BrainCircuit, ChevronLeft, ChevronRight, Settings,
+  Zap, Sun, Moon, BrainCircuit, PanelLeftClose, PanelLeftOpen, Settings,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
@@ -51,25 +52,14 @@ const AppSidebar = () => {
 
   return (
     <aside
-      className="hidden lg:flex flex-col min-h-screen bg-card border-r border-border transition-all duration-300 ease-in-out relative shrink-0"
+      className="hidden lg:flex flex-col min-h-screen bg-card border-r border-border transition-all duration-300 ease-in-out shrink-0"
       style={{ width: collapsed ? "72px" : "240px" }}
     >
-      {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="absolute -right-3.5 top-7 z-10 w-7 h-7 rounded-full bg-card border border-border flex items-center justify-center shadow-card hover:bg-secondary transition-colors"
-        title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {collapsed
-          ? <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-          : <ChevronLeft  className="w-3.5 h-3.5 text-muted-foreground" />}
-      </button>
-
       <div className="flex flex-col flex-1 px-3 py-4 gap-1 overflow-hidden">
-        {/* Brand — links to home page */}
+        {/* Brand */}
         <Link
           to="/"
-          className={`flex items-center gap-3 mb-6 px-2 py-2 rounded-xl overflow-hidden hover:bg-secondary transition-colors ${collapsed ? "justify-center" : ""}`}
+          className={`flex items-center gap-3 mb-4 px-2 py-2 rounded-xl overflow-hidden hover:bg-secondary transition-colors ${collapsed ? "justify-center" : ""}`}
           title="AI Portfolio Maker — Home"
         >
           <div
@@ -87,6 +77,26 @@ const AppSidebar = () => {
             </div>
           )}
         </Link>
+
+        {/* Collapse toggle — clearly visible button */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className={`flex items-center gap-2.5 px-3 py-2.5 mb-3 rounded-xl border text-sm font-medium transition-all duration-200 hover:bg-secondary hover:border-primary/30 hover:text-foreground ${
+            collapsed
+              ? "justify-center border-border text-muted-foreground"
+              : "border-border text-muted-foreground"
+          }`}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <PanelLeftOpen className="w-4 h-4 shrink-0" />
+          ) : (
+            <>
+              <PanelLeftClose className="w-4 h-4 shrink-0" />
+              <span className="text-sm">Collapse</span>
+            </>
+          )}
+        </button>
 
         {/* Nav */}
         <nav className="flex-1 flex flex-col gap-1">
@@ -156,7 +166,7 @@ const AppSidebar = () => {
               title={`${credits}/5 credits`}
               className="flex items-center justify-center w-full py-2.5 rounded-xl bg-secondary/60 border border-border"
             >
-              <Zap className={`w-4.5 h-4.5 ${creditTextColor}`} />
+              <Zap className={`w-4 h-4 ${creditTextColor}`} />
             </div>
           )}
 
@@ -169,9 +179,9 @@ const AppSidebar = () => {
             }`}
           >
             {theme === "dark" ? (
-              <><Sun className="w-4.5 h-4.5 text-amber-400 shrink-0" />{!collapsed && "Light mode"}</>
+              <><Sun className="w-4 h-4 text-amber-400 shrink-0" />{!collapsed && "Light mode"}</>
             ) : (
-              <><Moon className="w-4.5 h-4.5 shrink-0" />{!collapsed && "Dark mode"}</>
+              <><Moon className="w-4 h-4 shrink-0" />{!collapsed && "Dark mode"}</>
             )}
           </button>
 
@@ -183,7 +193,7 @@ const AppSidebar = () => {
               collapsed ? "justify-center" : ""
             }`}
           >
-            <LogOut className="w-4.5 h-4.5 shrink-0" />
+            <LogOut className="w-4 h-4 shrink-0" />
             {!collapsed && "Log out"}
           </button>
         </div>

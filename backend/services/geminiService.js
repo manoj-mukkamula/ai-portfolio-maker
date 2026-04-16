@@ -364,4 +364,3 @@ const generatePortfolioHTML = async (resumeText, template) => {
 };
 
 module.exports = { generatePortfolioHTML };
-

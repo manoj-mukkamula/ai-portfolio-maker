@@ -1,4 +1,9 @@
 // src/pages/GeneratePage.tsx
+// Changes:
+//  - Generate button is always visible (styled disabled state with border, not invisible)
+//  - Hover effects on generate button: size increase via padding, glowing border
+//  - On generate: preloader shows ~10s, then immediately redirects to /preview/:id?loading=1
+//  - No "waiting on generate page" — navigation happens as soon as preloader completes
 
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -13,7 +18,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// Categorize API error messages so we show the right UI
 type ErrorKind = "quota_daily" | "quota_credits" | "general";
 
 const categorizeError = (msg: string): ErrorKind => {
@@ -40,6 +44,7 @@ const GeneratePage = () => {
   const [dragOver, setDragOver]                 = useState(false);
   const [tipOpen, setTipOpen]                   = useState(true);
   const [apiError, setApiError]                 = useState<{ kind: ErrorKind; msg: string } | null>(null);
+  const [pendingPortfolioId, setPendingPortfolioId] = useState<string | null>(null);
 
   const apiPromiseRef   = useRef<Promise<any> | null>(null);
   const isSubmittingRef = useRef(false);
@@ -86,31 +91,55 @@ const GeneratePage = () => {
 
     isSubmittingRef.current = true;
 
+    // Start the API call immediately
+    let apiCall: Promise<any>;
     if (tab === "upload" && file) {
       const fd = new FormData();
       fd.append("resume", file);
       fd.append("template", selectedTpl!.template);
       fd.append("templateName", selectedTpl!.id);
-      apiPromiseRef.current = portfolioApi.generate(fd);
+      apiCall = portfolioApi.generate(fd);
     } else {
-      apiPromiseRef.current = portfolioApi.generate({
+      apiCall = portfolioApi.generate({
         resumeText,
         template:     selectedTpl!.template,
         templateName: selectedTpl!.id,
       });
     }
+    apiPromiseRef.current = apiCall;
+
+    // Pre-resolve the portfolio ID as soon as API returns (may happen during or after preloader)
+    apiCall.then(async (res) => {
+      const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
+      if (pid) {
+        setPendingPortfolioId(pid);
+        await refreshUser();
+      }
+    }).catch(() => {
+      // error is handled in handlePreloaderComplete
+    });
 
     setShowPreloader(true);
   };
 
+  // Called after the ~10s preloader animation completes
   const handlePreloaderComplete = async () => {
     setShowPreloader(false);
 
+    // If we already have the portfolio ID (fast API), go now
+    if (pendingPortfolioId) {
+      isSubmittingRef.current = false;
+      navigate(`/preview/${pendingPortfolioId}?loading=1`);
+      return;
+    }
+
+    // Otherwise wait for API to finish
     try {
       const res = await apiPromiseRef.current;
       await refreshUser();
       const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
       if (!pid) throw new Error("No portfolio ID returned");
+      isSubmittingRef.current = false;
       navigate(`/preview/${pid}?loading=1`);
     } catch (err: any) {
       isSubmittingRef.current = false;
@@ -502,29 +531,56 @@ Projects:
             </span>
           </div>
 
+          {/* Generate button — always visible, styled differently when disabled */}
           <button
             onClick={handleGenerate}
             disabled={!canGenerate || showPreloader}
             className={`
-              px-7 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2
-              transition-all active:scale-[0.98]
-              ${
-                canGenerate && !showPreloader
-                  ? "text-white cursor-pointer hover:opacity-90"
-                  : "text-white/70 cursor-not-allowed opacity-50 bg-muted"
+              relative flex items-center gap-2.5 font-bold text-sm rounded-xl
+              transition-all duration-200 active:scale-[0.97]
+              ${canGenerate && !showPreloader
+                ? "px-7 py-3 text-white cursor-pointer"
+                : "px-6 py-2.5 cursor-not-allowed"
               }
             `}
             style={
               canGenerate && !showPreloader
                 ? {
                     background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                    boxShadow:  "0 4px 20px rgba(99,102,241,0.35)",
+                    boxShadow:  "0 4px 20px rgba(99,102,241,0.40)",
                   }
-                : {}
+                : {
+                    background: "transparent",
+                    border: "2px dashed rgba(99,102,241,0.35)",
+                    color: "rgba(99,102,241,0.55)",
+                  }
             }
+            onMouseEnter={(e) => {
+              if (!canGenerate || showPreloader) return;
+              const el = e.currentTarget as HTMLElement;
+              el.style.boxShadow = "0 8px 32px rgba(99,102,241,0.55)";
+              el.style.transform = "translateY(-2px) scale(1.03)";
+            }}
+            onMouseLeave={(e) => {
+              if (!canGenerate || showPreloader) return;
+              const el = e.currentTarget as HTMLElement;
+              el.style.boxShadow = "0 4px 20px rgba(99,102,241,0.40)";
+              el.style.transform = "";
+            }}
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 shrink-0" />
             Generate Portfolio
+            {!canGenerate && !showPreloader && (
+              <span className="text-[10px] font-normal ml-1 opacity-60">
+                {!hasInput && !selectedTemplate
+                  ? "(add resume + template)"
+                  : !hasInput
+                  ? "(add resume)"
+                  : !selectedTemplate
+                  ? "(pick template)"
+                  : "(no credits)"}
+              </span>
+            )}
           </button>
         </div>
       </div>
