@@ -1,10 +1,11 @@
 // src/pages/LoginPage.tsx
-// Removed theme-toggle icon from auth navbar for login page
-// Added proper light/dark styling for background blobs
+// Uses SharedNavbar (auth variant) — no theme toggle, no duplicate icon in header
+// The BrainCircuit icon is only shown once in the form title area
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import SharedNavbar from "@/components/SharedNavbar";
 import { BrainCircuit, Eye, EyeOff, ArrowRight, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,28 +37,8 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Minimal brand-only header — no theme toggle on auth pages */}
-      <header className="border-b border-border bg-card/90 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
-            >
-              <BrainCircuit className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-foreground text-base tracking-tight hidden sm:block">
-              AI Portfolio Maker
-            </span>
-          </Link>
-          <Link
-            to="/"
-            className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg hover:bg-secondary"
-          >
-            Back to home
-          </Link>
-        </div>
-      </header>
+      {/* Auth navbar — brand only, no theme toggle */}
+      <SharedNavbar variant="auth" />
 
       {/* Background decoration */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">

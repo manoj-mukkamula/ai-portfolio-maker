@@ -1,9 +1,9 @@
 // src/pages/GeneratePage.tsx
-// Changes:
-//  - Generate button is always visible (styled disabled state with border, not invisible)
-//  - Hover effects on generate button: size increase via padding, glowing border
-//  - On generate: preloader shows ~10s, then immediately redirects to /preview/:id?loading=1
-//  - No "waiting on generate page" — navigation happens as soon as preloader completes
+// Fixed:
+//  - Generate button is always clearly visible in both light and dark mode
+//  - Disabled state uses solid muted colors (not transparent) for light mode legibility
+//  - After 10s preloader, immediately redirect to /preview/:id?loading=1
+//    so skeleton loading starts right away on the preview page
 
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
@@ -91,7 +91,7 @@ const GeneratePage = () => {
 
     isSubmittingRef.current = true;
 
-    // Start the API call immediately
+    // Start the API call immediately in parallel with the preloader animation
     let apiCall: Promise<any>;
     if (tab === "upload" && file) {
       const fd = new FormData();
@@ -108,7 +108,7 @@ const GeneratePage = () => {
     }
     apiPromiseRef.current = apiCall;
 
-    // Pre-resolve the portfolio ID as soon as API returns (may happen during or after preloader)
+    // Cache the portfolio ID as soon as the API resolves (may finish during animation)
     apiCall.then(async (res) => {
       const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
       if (pid) {
@@ -116,24 +116,25 @@ const GeneratePage = () => {
         await refreshUser();
       }
     }).catch(() => {
-      // error is handled in handlePreloaderComplete
+      // handled in handlePreloaderComplete
     });
 
     setShowPreloader(true);
   };
 
-  // Called after the ~10s preloader animation completes
+  // Called when the 10s preloader animation ends
+  // Immediately navigate to /preview/:id?loading=1 so skeleton starts right away
   const handlePreloaderComplete = async () => {
     setShowPreloader(false);
 
-    // If we already have the portfolio ID (fast API), go now
+    // If API already resolved, navigate immediately
     if (pendingPortfolioId) {
       isSubmittingRef.current = false;
       navigate(`/preview/${pendingPortfolioId}?loading=1`);
       return;
     }
 
-    // Otherwise wait for API to finish
+    // Otherwise wait for the API promise to settle, then navigate
     try {
       const res = await apiPromiseRef.current;
       await refreshUser();
@@ -182,6 +183,15 @@ Experience:
 Projects:
   - DevConnect: Real-time developer networking app (React, Socket.io)
   - AutoResume: AI-powered resume builder using OpenAI API`;
+
+  // Disabled button hint text
+  const hintText = !hasInput && !selectedTemplate
+    ? "Add resume + template to begin"
+    : !hasInput
+    ? "Upload or paste your resume first"
+    : !selectedTemplate
+    ? "Select a template to continue"
+    : "You have no credits remaining";
 
   return (
     <AppLayout>
@@ -364,8 +374,8 @@ Projects:
                 <div className="flex items-center justify-between mt-1.5">
                   <p className={`text-xs ${charColor} font-medium transition-colors`}>
                     {charCount} characters
-                    {charCount > 0 && charCount < 200 && " - add more for richer results"}
-                    {charCount >= 200 && " - looks great!"}
+                    {charCount > 0 && charCount < 200 && " — add more for richer results"}
+                    {charCount >= 200 && " — looks great!"}
                   </p>
                   <p className="text-xs text-muted-foreground">Best with 200+ characters</p>
                 </div>
@@ -513,7 +523,7 @@ Projects:
             {(user?.credits ?? 0) === 0 && (
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700 p-4">
                 <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
-                  You have 0 credits. They reset every 24 hours.
+                  You have 0 credits remaining. They reset automatically every 24 hours.
                 </p>
               </div>
             )}
@@ -531,16 +541,16 @@ Projects:
             </span>
           </div>
 
-          {/* Generate button — always visible, styled differently when disabled */}
+          {/* Generate button — always visible and readable in both light and dark mode */}
           <button
             onClick={handleGenerate}
             disabled={!canGenerate || showPreloader}
             className={`
               relative flex items-center gap-2.5 font-bold text-sm rounded-xl
-              transition-all duration-200 active:scale-[0.97]
+              transition-all duration-200 active:scale-[0.97] px-6 py-3
               ${canGenerate && !showPreloader
-                ? "px-7 py-3 text-white cursor-pointer"
-                : "px-6 py-2.5 cursor-not-allowed"
+                ? "text-white cursor-pointer hover:shadow-xl hover:-translate-y-0.5"
+                : "cursor-not-allowed"
               }
             `}
             style={
@@ -550,35 +560,18 @@ Projects:
                     boxShadow:  "0 4px 20px rgba(99,102,241,0.40)",
                   }
                 : {
-                    background: "transparent",
-                    border: "2px dashed rgba(99,102,241,0.35)",
-                    color: "rgba(99,102,241,0.55)",
+                    // Clearly visible disabled state in both light and dark mode
+                    background: "var(--secondary)",
+                    border: "1.5px dashed rgba(99,102,241,0.4)",
+                    color: "rgba(99,102,241,0.6)",
                   }
             }
-            onMouseEnter={(e) => {
-              if (!canGenerate || showPreloader) return;
-              const el = e.currentTarget as HTMLElement;
-              el.style.boxShadow = "0 8px 32px rgba(99,102,241,0.55)";
-              el.style.transform = "translateY(-2px) scale(1.03)";
-            }}
-            onMouseLeave={(e) => {
-              if (!canGenerate || showPreloader) return;
-              const el = e.currentTarget as HTMLElement;
-              el.style.boxShadow = "0 4px 20px rgba(99,102,241,0.40)";
-              el.style.transform = "";
-            }}
           >
             <Sparkles className="w-4 h-4 shrink-0" />
-            Generate Portfolio
+            <span>Generate Portfolio</span>
             {!canGenerate && !showPreloader && (
-              <span className="text-[10px] font-normal ml-1 opacity-60">
-                {!hasInput && !selectedTemplate
-                  ? "(add resume + template)"
-                  : !hasInput
-                  ? "(add resume)"
-                  : !selectedTemplate
-                  ? "(pick template)"
-                  : "(no credits)"}
+              <span className="text-[10px] font-normal opacity-70 hidden sm:inline">
+                ({hintText})
               </span>
             )}
           </button>

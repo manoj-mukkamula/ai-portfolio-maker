@@ -1,8 +1,10 @@
 // src/pages/EditorPage.tsx
-// Fixed: code textarea now uses explicit dark background (#1e1e2e) + light text
-//        regardless of app theme — matches a professional code editor appearance.
-// Fixed: live preview iframe uses allow-popups + base target=_blank so nav links
-//        scroll within the preview and external links open in new tabs correctly.
+// Fixed:
+//  - Nav anchor links (#section) in the live preview now scroll smoothly within
+//    the iframe instead of reloading or opening another editor page.
+//  - External links (http/https) still open in a new tab correctly.
+//  - Injected LINK_INTERCEPT_SCRIPT (same as PreviewPage) into srcDoc before render.
+//  - Premium look, Ctrl+S save, download, copy, word-wrap all intact.
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,6 +15,40 @@ import {
   Copy, WrapText, Sun, Moon, BrainCircuit, Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+
+// Same intercept script used in PreviewPage:
+// - Anchor (#...) links scroll within the iframe
+// - External URLs open in a real new tab
+// - Prevents the iframe from navigating the parent page
+const LINK_INTERCEPT_SCRIPT = `
+<script>
+(function() {
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href) return;
+
+    if (href.startsWith('#')) {
+      e.preventDefault();
+      e.stopPropagation();
+      var target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+  }, true);
+})();
+</script>
+`;
 
 const EditorPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -93,12 +129,11 @@ const EditorPage = () => {
     toast({ title: "Downloaded", description: "Portfolio saved as an HTML file." });
   };
 
-  // Inject base target=_blank so external links open in new tab,
-  // but internal anchor (#section) links scroll within the iframe normally.
-  // We do NOT add base for the live preview — that would break anchor scroll.
-  // Instead we use sandbox="allow-same-origin allow-scripts allow-popups"
-  // and let the portfolio's own nav links work via smooth-scroll JS.
-  const previewHtml = html;
+  // Inject the link-intercept script so nav links scroll within the iframe
+  // instead of navigating the parent app to another editor URL
+  const previewHtml = html
+    ? html.replace(/<head([^>]*)>/, `<head$1>${LINK_INTERCEPT_SCRIPT}`)
+    : "";
 
   const hasUnsavedChanges = html !== originalHtml;
   const displayName = templateName
@@ -266,10 +301,11 @@ const EditorPage = () => {
             )}
           </div>
           {/* 
-            sandbox: allow-same-origin (CSS/fonts work), allow-scripts (portfolio JS),
-            allow-popups (external links open new tab via window.open or target=_blank)
-            Note: nav anchor links (#section) work naturally within the iframe without
-            needing allow-top-navigation. External links need target=_blank in the HTML.
+            allow-same-origin: CSS and fonts load correctly
+            allow-scripts: portfolio animations + our intercept script run
+            allow-popups: external links opened via window.open() work
+            allow-forms: contact forms inside portfolios work
+            No allow-top-navigation: prevents iframe from redirecting the whole app
           */}
           <iframe
             srcDoc={previewHtml}
