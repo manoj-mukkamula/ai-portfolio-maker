@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/logo.png" alt="AI Portfolio Maker" width="130" />
+<img src="./assets/readme-logo.png" alt="AI Portfolio Maker" width="130" />
 
 # AI Portfolio Maker
 
@@ -63,6 +63,7 @@ You can then preview the output in the browser, edit the HTML directly, and down
 ## Tech Stack
 
 ### Frontend
+
 ![React](https://img.shields.io/badge/React%2018-20232A?style=flat&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)
@@ -72,32 +73,35 @@ You can then preview the output in the browser, edit the HTML directly, and down
 ![Axios](https://img.shields.io/badge/Axios-5A29E4?style=flat&logo=axios&logoColor=white)
 
 ### Backend
+
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=flat&logo=nodedotjs&logoColor=white)
 ![Express.js](https://img.shields.io/badge/Express.js-000000?style=flat&logo=express&logoColor=white)
 ![MongoDB Atlas](https://img.shields.io/badge/MongoDB%20Atlas-47A248?style=flat&logo=mongodb&logoColor=white)
 ![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat&logo=mongoose&logoColor=white)
 
 ### AI and Auth
+
 ![Google Gemini](https://img.shields.io/badge/Gemini%201.5%20Flash-4285F4?style=flat&logo=google&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-000000?style=flat&logo=jsonwebtokens&logoColor=white)
 ![bcrypt](https://img.shields.io/badge/bcryptjs-525252?style=flat&logo=letsencrypt&logoColor=white)
 
 ### Parsing and Security
+
 ![pdf-parse](https://img.shields.io/badge/pdf--parse-EC1C24?style=flat&logo=adobeacrobatreader&logoColor=white)
 ![mammoth](https://img.shields.io/badge/mammoth-2B579A?style=flat&logo=microsoftword&logoColor=white)
 ![Helmet](https://img.shields.io/badge/Helmet.js-1F2937?style=flat&logo=shield&logoColor=white)
 ![Zod](https://img.shields.io/badge/Zod-3E67B1?style=flat&logo=zod&logoColor=white)
 ![CORS](https://img.shields.io/badge/CORS-FF6B6B?style=flat&logo=cloudflare&logoColor=white)
 
-| Layer | Technology |
-|---|---|
-| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
-| Backend | Node.js, Express.js |
-| Database | MongoDB Atlas (Mongoose ODM) |
-| AI Engine | Google Gemini 1.5 Flash API |
-| Auth | JWT, bcryptjs |
-| File Parsing | pdf-parse (PDF), mammoth (DOCX) |
-| Security | Helmet.js, CORS, express-rate-limit, Zod validation |
+| Layer        | Technology                                          |
+| ------------ | --------------------------------------------------- |
+| Frontend     | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| Backend      | Node.js, Express.js                                 |
+| Database     | MongoDB Atlas (Mongoose ODM)                        |
+| AI Engine    | Google Gemini 1.5 Flash API                         |
+| Auth         | JWT, bcryptjs                                       |
+| File Parsing | pdf-parse (PDF), mammoth (DOCX)                     |
+| Security     | Helmet.js, CORS, express-rate-limit, Zod validation |
 
 ---
 
@@ -231,22 +235,22 @@ The frontend runs on `http://localhost:8080`. The Vite dev server automatically 
 
 ### Authentication
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/auth/register` | Create account | No |
-| POST | `/api/auth/login` | Login | No |
-| GET | `/api/auth/me` | Get current user | Yes |
-| DELETE | `/api/auth/account` | Delete account | Yes |
+| Method | Endpoint             | Description      | Auth Required |
+| ------ | -------------------- | ---------------- | ------------- |
+| POST   | `/api/auth/register` | Create account   | No            |
+| POST   | `/api/auth/login`    | Login            | No            |
+| GET    | `/api/auth/me`       | Get current user | Yes           |
+| DELETE | `/api/auth/account`  | Delete account   | Yes           |
 
 ### Portfolio
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|---------------|
-| POST | `/api/portfolio/generate` | Generate portfolio with AI | Yes |
-| GET | `/api/portfolio/history` | List all user portfolios | Yes |
-| GET | `/api/portfolio/:id` | Get portfolio HTML | Yes |
-| PUT | `/api/portfolio/:id` | Update portfolio HTML | Yes |
-| DELETE | `/api/portfolio/:id` | Delete portfolio | Yes |
+| Method | Endpoint                  | Description                | Auth Required |
+| ------ | ------------------------- | -------------------------- | ------------- |
+| POST   | `/api/portfolio/generate` | Generate portfolio with AI | Yes           |
+| GET    | `/api/portfolio/history`  | List all user portfolios   | Yes           |
+| GET    | `/api/portfolio/:id`      | Get portfolio HTML         | Yes           |
+| PUT    | `/api/portfolio/:id`      | Update portfolio HTML      | Yes           |
+| DELETE | `/api/portfolio/:id`      | Delete portfolio           | Yes           |
 
 ---
 
