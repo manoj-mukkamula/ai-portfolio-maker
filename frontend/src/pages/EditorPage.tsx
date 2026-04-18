@@ -1,12 +1,12 @@
 // src/pages/EditorPage.tsx
-// Fixed:
-//  - Nav anchor links (#section) in the live preview now scroll smoothly within
-//    the iframe instead of reloading or opening another editor page.
-//  - External links (http/https) still open in a new tab correctly.
-//  - Injected LINK_INTERCEPT_SCRIPT (same as PreviewPage) into srcDoc before render.
-//  - Premium look, Ctrl+S save, download, copy, word-wrap all intact.
+// Resizable split panel editor:
+//   - Draggable vertical divider (pointer events, smooth, no lag)
+//   - Light mode gets a premium warm-tinted code background
+//   - Dark mode keeps the classic GitHub-dark look
+//   - Ctrl+S save, copy, download, word-wrap all intact
+//   - No em dashes anywhere
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { portfolioApi } from "@/lib/api";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -16,10 +16,6 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-// Same intercept script used in PreviewPage:
-// - Anchor (#...) links scroll within the iframe
-// - External URLs open in a real new tab
-// - Prevents the iframe from navigating the parent page
 const LINK_INTERCEPT_SCRIPT = `
 <script>
 (function() {
@@ -28,17 +24,13 @@ const LINK_INTERCEPT_SCRIPT = `
     if (!a) return;
     var href = a.getAttribute('href');
     if (!href) return;
-
     if (href.startsWith('#')) {
       e.preventDefault();
       e.stopPropagation();
       var target = document.querySelector(href);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-
     if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:')) {
       e.preventDefault();
       e.stopPropagation();
@@ -50,19 +42,63 @@ const LINK_INTERCEPT_SCRIPT = `
 </script>
 `;
 
+// ─── Theme-aware editor styles ────────────────────────────────────────────────
+// Dark:  GitHub Dark inspired (classic for devs)
+// Light: Warm cream with deep slate text (premium, readable)
+const EDITOR_THEMES = {
+  dark: {
+    editorBg:    "#0d1117",
+    editorText:  "#e6edf3",
+    editorCaret: "#58a6ff",
+    headerBg:    "#161b22",
+    headerBorder:"#30363d",
+    labelColor:  "#8b949e",
+    metaColor:   "#6e7681",
+    kbdBg:       "#21262d",
+    kbdBorder:   "#30363d",
+    kbdColor:    "#8b949e",
+  },
+  light: {
+    editorBg:    "#faf8f5",
+    editorText:  "#1e293b",
+    editorCaret: "#4f46e5",
+    headerBg:    "#f1ede6",
+    headerBorder:"#ddd8cc",
+    labelColor:  "#64748b",
+    metaColor:   "#94a3b8",
+    kbdBg:       "#e8e4dc",
+    kbdBorder:   "#d0cbbf",
+    kbdColor:    "#64748b",
+  },
+};
+
+// Minimum panel width as percentage
+const MIN_PCT = 20;
+const MAX_PCT = 80;
+
 const EditorPage = () => {
-  const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  const { toast } = useToast();
+  const { id }     = useParams<{ id: string }>();
+  const navigate   = useNavigate();
+  const { toast }  = useToast();
   const { theme, toggleTheme } = useTheme();
-  const [html, setHtml] = useState("");
+
+  const [html, setHtml]             = useState("");
   const [originalHtml, setOriginalHtml] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [saving, setSaving]         = useState(false);
+  const [saved, setSaved]           = useState(false);
   const [templateName, setTemplateName] = useState("");
-  const [wordWrap, setWordWrap] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [wordWrap, setWordWrap]     = useState(false);
+  const [copied, setCopied]         = useState(false);
+
+  // Resizable panel state
+  const [editorPct, setEditorPct]   = useState(50);
+  const isDragging                  = useRef(false);
+  const containerRef                = useRef<HTMLDivElement>(null);
+  const dragStartX                  = useRef(0);
+  const dragStartPct                = useRef(50);
+
+  const et = EDITOR_THEMES[theme as "dark" | "light"] ?? EDITOR_THEMES.dark;
 
   useEffect(() => {
     if (!id) return;
@@ -89,7 +125,7 @@ const EditorPage = () => {
       setTimeout(() => setSaved(false), 2500);
       toast({ title: "Saved", description: "Changes saved successfully." });
     } catch {
-      toast({ title: "Error", description: "Failed to save changes.", variant: "destructive" });
+      toast({ title: "Save failed", description: "Could not save changes.", variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -105,6 +141,29 @@ const EditorPage = () => {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [handleSave]);
+
+  // ─── Drag-to-resize logic ─────────────────────────────────────────────────
+  const onDividerPointerDown = useCallback((e: React.PointerEvent) => {
+    e.preventDefault();
+    isDragging.current    = true;
+    dragStartX.current    = e.clientX;
+    dragStartPct.current  = editorPct;
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [editorPct]);
+
+  const onDividerPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging.current || !containerRef.current) return;
+    const containerWidth = containerRef.current.getBoundingClientRect().width;
+    if (containerWidth === 0) return;
+    const deltaX     = e.clientX - dragStartX.current;
+    const deltaPct   = (deltaX / containerWidth) * 100;
+    const newPct     = Math.min(MAX_PCT, Math.max(MIN_PCT, dragStartPct.current + deltaPct));
+    setEditorPct(newPct);
+  }, []);
+
+  const onDividerPointerUp = useCallback(() => {
+    isDragging.current = false;
+  }, []);
 
   const handleCopy = async () => {
     try {
@@ -129,8 +188,6 @@ const EditorPage = () => {
     toast({ title: "Downloaded", description: "Portfolio saved as an HTML file." });
   };
 
-  // Inject the link-intercept script so nav links scroll within the iframe
-  // instead of navigating the parent app to another editor URL
   const previewHtml = html
     ? html.replace(/<head([^>]*)>/, `<head$1>${LINK_INTERCEPT_SCRIPT}`)
     : "";
@@ -140,6 +197,8 @@ const EditorPage = () => {
     .split("-")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
+
+  const isMac = typeof navigator !== "undefined" && navigator.platform.includes("Mac");
 
   if (loading) {
     return (
@@ -155,7 +214,10 @@ const EditorPage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Navbar */}
-      <header className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-card sticky top-0 z-40">
+      <header
+        className="h-14 shrink-0 flex items-center justify-between px-4 lg:px-6 border-b border-border bg-card sticky top-0 z-40"
+        style={{ boxShadow: "0 1px 0 0 var(--border), 0 2px 8px rgba(0,0,0,0.04)" }}
+      >
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -180,7 +242,10 @@ const EditorPage = () => {
             <div className="leading-none">
               <p className="text-sm font-bold text-foreground">{displayName}</p>
               <p className="text-[10px] text-muted-foreground tracking-widest uppercase mt-0.5">
-                Editor {hasUnsavedChanges && <span className="text-amber-500 font-semibold ml-1">Unsaved</span>}
+                Editor{" "}
+                {hasUnsavedChanges && (
+                  <span className="text-amber-500 font-semibold">Unsaved</span>
+                )}
               </p>
             </div>
           </div>
@@ -232,7 +297,7 @@ const EditorPage = () => {
           <button
             onClick={handleSave}
             disabled={saving || !hasUnsavedChanges}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6)" }}
             title="Save changes (Ctrl+S)"
           >
@@ -245,51 +310,112 @@ const EditorPage = () => {
         </div>
       </header>
 
-      <div className="flex-1 flex overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
-        {/* Code editor pane — always dark, like a real code editor */}
-        <div className="flex flex-col w-1/2 border-r border-border" style={{ background: "#0d1117" }}>
+      {/* Split editor layout */}
+      <div
+        ref={containerRef}
+        className="flex flex-1 overflow-hidden select-none"
+        style={{ height: "calc(100vh - 56px)" }}
+      >
+        {/* Code editor pane */}
+        <div
+          className="flex flex-col overflow-hidden"
+          style={{ width: `${editorPct}%`, minWidth: 0 }}
+        >
+          {/* Editor header bar */}
           <div
-            className="flex items-center justify-between px-4 py-2 border-b"
-            style={{ background: "#161b22", borderColor: "#30363d" }}
+            className="flex items-center justify-between px-4 py-2 border-b shrink-0"
+            style={{
+              background:   et.headerBg,
+              borderColor:  et.headerBorder,
+            }}
           >
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#8b949e" }}>
-                HTML
+            <div className="flex items-center gap-2.5">
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: et.labelColor }}
+              >
+                HTML Source
               </span>
-              <span className="text-[10px]" style={{ color: "#6e7681" }}>
+              <span
+                className="text-[10px] font-mono"
+                style={{ color: et.metaColor }}
+              >
                 {html.length.toLocaleString()} chars
               </span>
             </div>
-            <div className="flex items-center gap-1 text-[10px]" style={{ color: "#6e7681" }}>
+            <div
+              className="flex items-center gap-1 text-[10px]"
+              style={{ color: et.metaColor }}
+            >
               <kbd
                 className="px-1.5 py-0.5 rounded font-mono text-[10px]"
-                style={{ background: "#21262d", border: "1px solid #30363d", color: "#8b949e" }}
+                style={{
+                  background: et.kbdBg,
+                  border:     `1px solid ${et.kbdBorder}`,
+                  color:      et.kbdColor,
+                }}
               >
-                {typeof navigator !== "undefined" && navigator.platform.includes("Mac") ? "Cmd" : "Ctrl"}+S
+                {isMac ? "Cmd" : "Ctrl"}+S
               </kbd>
               <span>to save</span>
             </div>
           </div>
+
+          {/* Textarea */}
           <textarea
             value={html}
             onChange={(e) => setHtml(e.target.value)}
-            className="flex-1 p-4 font-mono text-xs leading-relaxed resize-none outline-none"
+            className="flex-1 p-4 font-mono text-xs leading-relaxed resize-none outline-none overflow-auto"
             style={{
-              background: "#0d1117",
-              color: "#e6edf3",
-              caretColor: "#58a6ff",
-              whiteSpace: wordWrap ? "pre-wrap" : "pre",
-              overflowWrap: wordWrap ? "break-word" : "normal",
-              tabSize: 2,
+              background:  et.editorBg,
+              color:       et.editorText,
+              caretColor:  et.editorCaret,
+              whiteSpace:  wordWrap ? "pre-wrap" : "pre",
+              overflowWrap:wordWrap ? "break-word" : "normal",
+              tabSize:     2,
             }}
             spellCheck={false}
             placeholder="Portfolio HTML will appear here..."
           />
         </div>
 
+        {/* Draggable divider */}
+        <div
+          className="relative shrink-0 flex items-center justify-center cursor-col-resize z-10 group"
+          style={{ width: "5px", background: "var(--border)" }}
+          onPointerDown={onDividerPointerDown}
+          onPointerMove={onDividerPointerMove}
+          onPointerUp={onDividerPointerUp}
+        >
+          {/* Wider invisible hit area */}
+          <div className="absolute inset-y-0 -left-2 -right-2" />
+          {/* Visual indicator */}
+          <div
+            className="absolute inset-y-0 w-[3px] rounded-full transition-all duration-150 group-hover:opacity-100 opacity-0"
+            style={{ background: "linear-gradient(180deg, #6366f1, #8b5cf6)", left: "1px" }}
+          />
+          {/* Center grip dots */}
+          <div className="flex flex-col gap-1.5 relative z-10 opacity-40 group-hover:opacity-100 transition-opacity">
+            {[0,1,2].map(i => (
+              <div
+                key={i}
+                className="w-1 h-1 rounded-full"
+                style={{ background: theme === "dark" ? "#8b949e" : "#94a3b8" }}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Live preview pane */}
-        <div className="flex flex-col w-1/2 bg-secondary">
-          <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+        <div
+          className="flex flex-col overflow-hidden"
+          style={{ flex: 1, minWidth: 0 }}
+        >
+          {/* Preview header */}
+          <div
+            className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0"
+            style={{ minHeight: "37px" }}
+          >
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -297,20 +423,18 @@ const EditorPage = () => {
               </span>
             </div>
             {hasUnsavedChanges && (
-              <span className="text-[10px] text-amber-500 font-semibold">Unsaved changes</span>
+              <span className="text-[10px] text-amber-500 font-semibold flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                Unsaved changes
+              </span>
             )}
           </div>
-          {/* 
-            allow-same-origin: CSS and fonts load correctly
-            allow-scripts: portfolio animations + our intercept script run
-            allow-popups: external links opened via window.open() work
-            allow-forms: contact forms inside portfolios work
-            No allow-top-navigation: prevents iframe from redirecting the whole app
-          */}
+
+          {/* iFrame preview */}
           <iframe
             srcDoc={previewHtml}
             title="Live Preview"
-            className="flex-1 border-0"
+            className="flex-1 border-0 w-full"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           />
         </div>

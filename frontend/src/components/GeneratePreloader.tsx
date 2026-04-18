@@ -46,7 +46,7 @@ const STEPS = [
   {
     phase: "Finishing up",
     message: "Applying final polish...",
-    sub: "Almost there — just a few more seconds",
+    sub: "Almost there, just a few more seconds",
     pct: 97,
   },
 ];
@@ -315,7 +315,7 @@ const GeneratePreloader = ({ onComplete }: Props) => {
               </h2>
               <p className="text-base" style={{ color: "rgba(148,163,184,0.65)" }}>
                 {waitSecs > 0
-                  ? `Still working — ${formatWait(waitSecs)} elapsed. Gemini may be retrying due to rate limits.`
+                  ? `Still working. ${formatWait(waitSecs)} elapsed. Gemini may be retrying due to rate limits.`
                   : "Sending request to Gemini AI..."}
               </p>
             </>

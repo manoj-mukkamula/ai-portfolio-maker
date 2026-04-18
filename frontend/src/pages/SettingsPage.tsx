@@ -139,8 +139,8 @@ const SettingsPage = () => {
           </div>
           <div className="space-y-1">
             {[
-              { label: "Full Name", value: user?.name ?? "—" },
-              { label: "Email Address", value: user?.email ?? "—" },
+              { label: "Full Name", value: user?.name ?? "Not set" },
+              { label: "Email Address", value: user?.email ?? "Not set" },
             ].map((field) => (
               <div
                 key={field.label}
@@ -306,7 +306,7 @@ const SettingsPage = () => {
             <div>
               <h2 className="text-lg font-bold text-foreground">Danger Zone</h2>
               <p className="text-sm text-muted-foreground">
-                Irreversible actions — proceed carefully
+                Irreversible actions. Please proceed carefully
               </p>
             </div>
           </div>

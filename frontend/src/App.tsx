@@ -1,7 +1,5 @@
 // src/App.tsx
-// Updates:
-//  - Added routes: / (HomePage), /about, /contact, /settings
-//  - / now shows the landing HomePage instead of redirecting to /login
+// Routes: / = HomePage, /login and /register = AuthPage (single animated split-panel)
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";

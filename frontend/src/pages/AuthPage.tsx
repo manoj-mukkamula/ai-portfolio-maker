@@ -1,25 +1,21 @@
 // src/pages/AuthPage.tsx
-//
-// Changes:
-//  - Removed "Developed by Manoj" from the decorative panel entirely
-//  - Fixed password toggle: Eye = show password (click to hide), EyeOff = hide password (click to show)
-//  - Added placeholder "Your full name" to Full Name input
-//  - Improved card border: subtle indigo glow
-//  - Improved CTA panel button: stronger border + hover glow effect
-//  - Auth logic, routing, and layout structure all unchanged
+// Single-page login/register with animated sliding panel.
+// Header: removed theme toggle (page is hardcoded dark, toggle was misleading).
+// Added "5 free credits" badge + "Powered by Gemini AI" pill in place of the icon.
+// All form logic, animations, and layout unchanged.
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useToast } from "@/hooks/use-toast";
 import {
   Eye, EyeOff, ArrowRight, Loader2,
   Sparkles, Zap, FileText, Download, Star, Shield,
-  BrainCircuit, Sun, Moon,
+  BrainCircuit,
 } from "lucide-react";
 
+// ─── Reusable input ────────────────────────────────────────────────────────────
 const InputField = ({
   label, type, value, onChange, placeholder,
   required, minLength, maxLength, children,
@@ -30,8 +26,10 @@ const InputField = ({
   children?: React.ReactNode;
 }) => (
   <div>
-    <label className="block text-[11px] font-semibold tracking-[0.16em] uppercase mb-1.5"
-      style={{ color: "rgba(148,163,184,0.75)" }}>
+    <label
+      className="block text-[11px] font-semibold tracking-[0.16em] uppercase mb-1.5"
+      style={{ color: "rgba(148,163,184,0.75)" }}
+    >
       {label}
     </label>
     <div className="relative">
@@ -63,6 +61,7 @@ const InputField = ({
   </div>
 );
 
+// ─── Submit button ─────────────────────────────────────────────────────────────
 const SubmitButton = ({ loading, label }: { loading: boolean; label: string }) => (
   <motion.button
     type="submit" disabled={loading}
@@ -78,15 +77,17 @@ const SubmitButton = ({ loading, label }: { loading: boolean; label: string }) =
   </motion.button>
 );
 
+// ─── Feature list shown on the sliding panel ───────────────────────────────────
 const FEATURES = [
   { icon: Sparkles, text: "AI-powered resume parsing" },
   { icon: FileText, text: "7 professional templates" },
   { icon: Zap,      text: "Generate in under 60 seconds" },
   { icon: Download, text: "Download as standalone HTML" },
-  { icon: Star,     text: "5 free credits per session" },
+  { icon: Star,     text: "5 free credits on signup" },
   { icon: Shield,   text: "Your data stays private" },
 ];
 
+// ─── Register form (used on both mobile and desktop) ──────────────────────────
 interface RegProps {
   regName: string; setRegName: (v: string) => void;
   regEmail: string; setRegEmail: (v: string) => void;
@@ -124,51 +125,65 @@ const RegisterForm = ({
         value={regPassword} onChange={setRegPassword}
         placeholder="Min 8 chars, 1 uppercase, 1 number" required minLength={8}
       >
-        {/* Eye ON = password visible (click EyeOff to hide); Eye OFF = hidden (click Eye to show) */}
-        <button type="button" onClick={() => setShowRegPw(!showRegPw)}
-          style={{ color: "rgba(148,163,184,0.55)" }} className="hover:text-white transition-colors"
-          aria-label={showRegPw ? "Hide password" : "Show password"}>
+        <button
+          type="button"
+          onClick={() => setShowRegPw(!showRegPw)}
+          style={{ color: "rgba(148,163,184,0.55)" }}
+          className="hover:text-white transition-colors"
+          aria-label={showRegPw ? "Hide password" : "Show password"}
+        >
           {showRegPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
         </button>
       </InputField>
       <InputField label="Confirm Password" type="password" value={regConfirm}
         onChange={setRegConfirm} placeholder="Repeat your password" required />
-      <label className="flex items-start gap-2.5 cursor-pointer select-none"
-        style={{ color: "rgba(148,163,184,0.65)" }}>
-        <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
-          className="w-4 h-4 mt-0.5 rounded shrink-0 accent-indigo-500" />
+      <label
+        className="flex items-start gap-2.5 cursor-pointer select-none"
+        style={{ color: "rgba(148,163,184,0.65)" }}
+      >
+        <input
+          type="checkbox" checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+          className="w-4 h-4 mt-0.5 rounded shrink-0 accent-indigo-500"
+        />
         <span className="text-xs leading-relaxed">
           I agree that my resume will be processed by Google Gemini AI to generate portfolio
-          content, and that I own the rights to the content I upload.
+          content, and that I own the rights to everything I upload.
         </span>
       </label>
-      <div className="pt-1"><SubmitButton loading={loading} label="Create Account" /></div>
+      <div className="pt-1">
+        <SubmitButton loading={loading} label="Create Account" />
+      </div>
     </form>
     <p className="text-center text-sm lg:hidden" style={{ color: "rgba(148,163,184,0.6)" }}>
       Already have an account?{" "}
-      <button onClick={onSwitchToLogin}
-        className="font-semibold hover:underline transition-colors" style={{ color: "#a5b4fc" }}>
+      <button
+        onClick={onSwitchToLogin}
+        className="font-semibold hover:underline transition-colors"
+        style={{ color: "#a5b4fc" }}
+      >
         Log in here
       </button>
     </p>
   </>
 );
 
+// ─── Main page ─────────────────────────────────────────────────────────────────
 type Mode = "login" | "register";
 
 const AuthPage = () => {
-  const [mode, setMode] = useState<Mode>("login");
-  const [loginEmail, setLoginEmail] = useState("");
+  const [mode, setMode]               = useState<Mode>("login");
+  const [loginEmail, setLoginEmail]   = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPw, setShowLoginPw] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
-  const [regName, setRegName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
+  const [regName, setRegName]         = useState("");
+  const [regEmail, setRegEmail]       = useState("");
   const [regPassword, setRegPassword] = useState("");
-  const [regConfirm, setRegConfirm] = useState("");
-  const [showRegPw, setShowRegPw] = useState(false);
-  const [agreed, setAgreed] = useState(false);
-  const [regLoading, setRegLoading] = useState(false);
+  const [regConfirm, setRegConfirm]   = useState("");
+  const [showRegPw, setShowRegPw]     = useState(false);
+  const [agreed, setAgreed]           = useState(false);
+  const [regLoading, setRegLoading]   = useState(false);
 
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -181,22 +196,30 @@ const AuthPage = () => {
       await login(loginEmail, loginPassword);
       navigate("/dashboard");
     } catch (err: any) {
-      toast({ title: "Login failed",
+      toast({
+        title: "Login failed",
         description: err.response?.data?.message || "Invalid email or password.",
-        variant: "destructive" });
+        variant: "destructive",
+      });
     } finally { setLoginLoading(false); }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (regPassword !== regConfirm) {
-      toast({ title: "Passwords don't match",
-        description: "Please make sure both passwords are the same.", variant: "destructive" });
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both passwords are the same.",
+        variant: "destructive",
+      });
       return;
     }
     if (!agreed) {
-      toast({ title: "One more thing",
-        description: "Please check the agreement box before continuing.", variant: "destructive" });
+      toast({
+        title: "One more thing",
+        description: "Please check the agreement box before continuing.",
+        variant: "destructive",
+      });
       return;
     }
     setRegLoading(true);
@@ -204,9 +227,11 @@ const AuthPage = () => {
       await register(regName, regEmail, regPassword);
       navigate("/dashboard");
     } catch (err: any) {
-      toast({ title: "Could not create account",
+      toast({
+        title: "Could not create account",
         description: err.response?.data?.message || "Something went wrong. Please try again.",
-        variant: "destructive" });
+        variant: "destructive",
+      });
     } finally { setRegLoading(false); }
   };
 
@@ -215,15 +240,15 @@ const AuthPage = () => {
   const formIn  = { opacity: 0, x: 20 };
   const formOut = { opacity: 0, x: -20 };
 
-  const { theme, toggleTheme } = useTheme();
-
   return (
-    <div className="min-h-screen flex flex-col"
-      style={{ background: "linear-gradient(135deg, #080c18 0%, #0e1525 60%, #0a1020 100%)" }}>
-
-      {/* Top navbar — consistent brand + home link */}
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: "linear-gradient(135deg, #080c18 0%, #0e1525 60%, #0a1020 100%)" }}
+    >
+      {/* ── Navbar: brand + info badges + back link. No theme toggle (page is always dark). ── */}
       <header className="shrink-0 border-b border-white/[0.08] bg-transparent">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          {/* Brand */}
           <Link to="/" className="flex items-center gap-2.5 group">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm transition-transform group-hover:scale-105"
@@ -235,215 +260,316 @@ const AuthPage = () => {
               AI Portfolio Maker
             </span>
           </Link>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl hover:bg-white/10 transition-colors"
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+
+          {/* Center: info pills — visible on md+ */}
+          <div className="hidden md:flex items-center gap-2">
+            {/* Credits pill */}
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{
+                background: "rgba(99,102,241,0.15)",
+                border: "1px solid rgba(99,102,241,0.3)",
+              }}
             >
-              {theme === "dark"
-                ? <Sun className="w-4 h-4 text-amber-400" />
-                : <Moon className="w-4 h-4 text-white/60" />}
-            </button>
-            <Link
-              to="/"
-              className="text-sm font-medium text-white/60 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/10"
+              <Star className="w-3 h-3 text-indigo-300" />
+              <span className="text-[11px] font-semibold text-indigo-300 tracking-wide">
+                5 free credits
+              </span>
+            </div>
+            {/* Gemini pill */}
+            <div
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
+              }}
             >
-              Back to home
-            </Link>
+              <Sparkles className="w-3 h-3 text-white/50" />
+              <span className="text-[11px] font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.5)" }}>
+                Powered by Gemini AI
+              </span>
+            </div>
           </div>
+
+          {/* Right: back link */}
+          <Link
+            to="/"
+            className="text-sm font-medium transition-colors px-3 py-2 rounded-lg"
+            style={{ color: "rgba(255,255,255,0.55)" }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.color = "#fff";
+              (e.currentTarget as HTMLAnchorElement).style.background = "rgba(255,255,255,0.07)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLAnchorElement).style.color = "rgba(255,255,255,0.55)";
+              (e.currentTarget as HTMLAnchorElement).style.background = "transparent";
+            }}
+          >
+            Back to home
+          </Link>
         </div>
       </header>
 
+      {/* ── Page body ─────────────────────────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center p-4">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 70%)" }} />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full"
-          style={{ background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)" }} />
-        <div className="absolute inset-0 opacity-[0.025]"
-          style={{ backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)", backgroundSize: "60px 60px" }} />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative w-full max-w-4xl rounded-2xl overflow-hidden"
-        style={{
-          background: "rgba(12,17,30,0.94)",
-          border: "1px solid rgba(99,102,241,0.2)",
-          boxShadow: "0 32px 80px rgba(0,0,0,0.55), 0 0 60px rgba(99,102,241,0.07)",
-          backdropFilter: "blur(24px)", minHeight: 560,
-        }}
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[560px]">
-          <div className="flex items-center justify-center p-6 sm:p-8 lg:p-12 order-2 lg:order-1">
-            <AnimatePresence mode="wait">
-              {mode === "login" ? (
-                <motion.div key="login" initial={formIn} animate={{ opacity: 1, x: 0 }}
-                  exit={formOut} transition={{ duration: 0.28, ease: "easeOut" }} className="w-full max-w-sm">
-                  <div className="mb-6">
-                    <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "#f1f5f9" }}>Welcome back</h2>
-                    <p className="text-sm mt-1" style={{ color: "rgba(148,163,184,0.65)" }}>Sign in to your account to continue</p>
-                  </div>
-                  <form onSubmit={handleLogin} className="space-y-[14px]">
-                    <InputField label="Email Address" type="email" value={loginEmail}
-                      onChange={setLoginEmail} placeholder="you@example.com" required />
-                    <InputField
-                      label="Password"
-                      type={showLoginPw ? "text" : "password"}
-                      value={loginPassword} onChange={setLoginPassword}
-                      placeholder="Your password" required>
-                      <button type="button" onClick={() => setShowLoginPw(!showLoginPw)}
-                        style={{ color: "rgba(148,163,184,0.55)" }}
-                        className="hover:text-white transition-colors"
-                        aria-label={showLoginPw ? "Hide password" : "Show password"}>
-                        {showLoginPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </InputField>
-                    <div className="pt-1"><SubmitButton loading={loginLoading} label="Log In" /></div>
-                  </form>
-                  <p className="text-center text-sm mt-5 lg:hidden" style={{ color: "rgba(148,163,184,0.6)" }}>
-                    New here?{" "}
-                    <button onClick={switchToRegister} className="font-semibold hover:underline transition-colors" style={{ color: "#a5b4fc" }}>
-                      Create an account
-                    </button>
-                  </p>
-                </motion.div>
-              ) : (
-                <motion.div key="register-mobile" initial={formIn} animate={{ opacity: 1, x: 0 }}
-                  exit={formOut} transition={{ duration: 0.28, ease: "easeOut" }}
-                  className="w-full max-w-sm space-y-[14px] lg:hidden">
-                  <RegisterForm
-                    regName={regName} setRegName={setRegName}
-                    regEmail={regEmail} setRegEmail={setRegEmail}
-                    regPassword={regPassword} setRegPassword={setRegPassword}
-                    regConfirm={regConfirm} setRegConfirm={setRegConfirm}
-                    showRegPw={showRegPw} setShowRegPw={setShowRegPw}
-                    agreed={agreed} setAgreed={setAgreed}
-                    loading={regLoading} onSubmit={handleRegister}
-                    onSwitchToLogin={switchToLogin}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="hidden lg:flex items-center justify-center p-8 lg:p-12 order-1 lg:order-2">
-            <AnimatePresence mode="wait">
-              {mode === "register" && (
-                <motion.div key="register-desktop" initial={formIn} animate={{ opacity: 1, x: 0 }}
-                  exit={formOut} transition={{ duration: 0.28, ease: "easeOut" }}
-                  className="w-full max-w-sm space-y-[14px]">
-                  <RegisterForm
-                    regName={regName} setRegName={setRegName}
-                    regEmail={regEmail} setRegEmail={setRegEmail}
-                    regPassword={regPassword} setRegPassword={setRegPassword}
-                    regConfirm={regConfirm} setRegConfirm={setRegConfirm}
-                    showRegPw={showRegPw} setShowRegPw={setShowRegPw}
-                    agreed={agreed} setAgreed={setAgreed}
-                    loading={regLoading} onSubmit={handleRegister}
-                    onSwitchToLogin={switchToLogin}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+        {/* Background glows */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div
+            className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(99,102,241,0.13) 0%, transparent 70%)" }}
+          />
+          <div
+            className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] rounded-full"
+            style={{ background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)" }}
+          />
+          <div
+            className="absolute inset-0 opacity-[0.025]"
+            style={{
+              backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+              backgroundSize: "60px 60px",
+            }}
+          />
         </div>
 
+        {/* Card */}
         <motion.div
-          animate={{ left: mode === "login" ? "50%" : "0%" }}
-          transition={{ type: "spring", stiffness: 280, damping: 32 }}
-          className="hidden lg:flex absolute top-0 bottom-0 w-1/2 flex-col items-center justify-center p-10 z-20"
+          initial={{ opacity: 0, y: 24, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="relative w-full max-w-4xl rounded-2xl overflow-hidden"
           style={{
-            background: "linear-gradient(145deg, #1e1b4b 0%, #312e81 35%, #1e3a5f 65%, #0e7490 100%)",
-            borderRadius: mode === "login" ? "0 16px 16px 0" : "16px 0 0 16px",
+            background: "rgba(12,17,30,0.94)",
+            border: "1px solid rgba(99,102,241,0.2)",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.55), 0 0 60px rgba(99,102,241,0.07)",
+            backdropFilter: "blur(24px)",
+            minHeight: 560,
           }}
         >
-          <div className="absolute top-[-60px] right-[-60px] w-48 h-48 rounded-full opacity-20"
-            style={{ border: "1px solid rgba(255,255,255,0.4)" }} />
-          <div className="absolute bottom-[-40px] left-[-40px] w-36 h-36 rounded-full opacity-15"
-            style={{ border: "1px solid rgba(255,255,255,0.3)" }} />
-
-          <div className="relative z-10 text-center space-y-7 w-full">
-            <motion.div key={mode + "-logo"} initial={{ scale: 0.88, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.08, duration: 0.35 }}
-              className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}>
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold text-white text-base leading-tight whitespace-nowrap">
-                AI Portfolio Maker
-              </span>
-            </motion.div>
-
-            <AnimatePresence mode="wait">
-              <motion.div key={mode + "-headline"} initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.25 }} className="space-y-2.5">
-                <h3 className="text-2xl font-bold text-white leading-tight">
-                  {mode === "login" ? "Don't have an account?" : "Already have an account?"}
-                </h3>
-                <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
-                  {mode === "login"
-                    ? "Join thousands of professionals building standout portfolios with AI."
-                    : "Log back in to access your portfolios and credits."}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-
-            <AnimatePresence>
-              {mode === "login" && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                  transition={{ duration: 0.22 }} className="space-y-2.5 text-left">
-                  {FEATURES.map((f, i) => (
-                    <motion.div key={f.text} initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.04 * i, duration: 0.25 }}
-                      className="flex items-center gap-2.5 text-sm" style={{ color: "rgba(255,255,255,0.8)" }}>
-                      <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-                        style={{ background: "rgba(255,255,255,0.12)" }}>
-                        <f.icon className="w-3.5 h-3.5 text-white" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[560px]">
+            {/* Form panel (left on desktop) */}
+            <div className="flex items-center justify-center p-6 sm:p-8 lg:p-12 order-2 lg:order-1">
+              <AnimatePresence mode="wait">
+                {mode === "login" ? (
+                  <motion.div
+                    key="login"
+                    initial={formIn} animate={{ opacity: 1, x: 0 }}
+                    exit={formOut} transition={{ duration: 0.28, ease: "easeOut" }}
+                    className="w-full max-w-sm"
+                  >
+                    <div className="mb-6">
+                      <h2 className="text-xl sm:text-2xl font-bold" style={{ color: "#f1f5f9" }}>
+                        Welcome back
+                      </h2>
+                      <p className="text-sm mt-1" style={{ color: "rgba(148,163,184,0.65)" }}>
+                        Sign in to your account to continue
+                      </p>
+                    </div>
+                    <form onSubmit={handleLogin} className="space-y-[14px]">
+                      <InputField
+                        label="Email Address" type="email" value={loginEmail}
+                        onChange={setLoginEmail} placeholder="you@example.com" required
+                      />
+                      <InputField
+                        label="Password"
+                        type={showLoginPw ? "text" : "password"}
+                        value={loginPassword} onChange={setLoginPassword}
+                        placeholder="Your password" required
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setShowLoginPw(!showLoginPw)}
+                          style={{ color: "rgba(148,163,184,0.55)" }}
+                          className="hover:text-white transition-colors"
+                          aria-label={showLoginPw ? "Hide password" : "Show password"}
+                        >
+                          {showLoginPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </InputField>
+                      <div className="pt-1">
+                        <SubmitButton loading={loginLoading} label="Log In" />
                       </div>
-                      {f.text}
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    </form>
+                    <p className="text-center text-sm mt-5 lg:hidden" style={{ color: "rgba(148,163,184,0.6)" }}>
+                      New here?{" "}
+                      <button
+                        onClick={switchToRegister}
+                        className="font-semibold hover:underline transition-colors"
+                        style={{ color: "#a5b4fc" }}
+                      >
+                        Create an account
+                      </button>
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="register-mobile"
+                    initial={formIn} animate={{ opacity: 1, x: 0 }}
+                    exit={formOut} transition={{ duration: 0.28, ease: "easeOut" }}
+                    className="w-full max-w-sm space-y-[14px] lg:hidden"
+                  >
+                    <RegisterForm
+                      regName={regName} setRegName={setRegName}
+                      regEmail={regEmail} setRegEmail={setRegEmail}
+                      regPassword={regPassword} setRegPassword={setRegPassword}
+                      regConfirm={regConfirm} setRegConfirm={setRegConfirm}
+                      showRegPw={showRegPw} setShowRegPw={setShowRegPw}
+                      agreed={agreed} setAgreed={setAgreed}
+                      loading={regLoading} onSubmit={handleRegister}
+                      onSwitchToLogin={switchToLogin}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
-            {/* Panel CTA button — improved contrast, removed "Developed by Manoj" */}
-            <motion.button
-              onClick={mode === "login" ? switchToRegister : switchToLogin}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.97 }}
-              className="w-full py-2.5 rounded-xl font-semibold text-sm transition-all"
-              style={{
-                background: "rgba(255,255,255,0.14)",
-                border: "1.5px solid rgba(255,255,255,0.38)",
-                color: "#fff",
-                backdropFilter: "blur(8px)",
-                boxShadow: "0 2px 12px rgba(255,255,255,0.05)",
-              }}
-              onMouseEnter={(e) => {
-                const btn = e.currentTarget as HTMLButtonElement;
-                btn.style.background = "rgba(255,255,255,0.22)";
-                btn.style.boxShadow = "0 4px 22px rgba(255,255,255,0.12)";
-              }}
-              onMouseLeave={(e) => {
-                const btn = e.currentTarget as HTMLButtonElement;
-                btn.style.background = "rgba(255,255,255,0.14)";
-                btn.style.boxShadow = "0 2px 12px rgba(255,255,255,0.05)";
-              }}
-            >
-              {mode === "login" ? "Create Account" : "Log In Instead"}
-            </motion.button>
+            {/* Register form on desktop (right panel, visible when sliding panel moves left) */}
+            <div className="hidden lg:flex items-center justify-center p-8 lg:p-12 order-1 lg:order-2">
+              <AnimatePresence mode="wait">
+                {mode === "register" && (
+                  <motion.div
+                    key="register-desktop"
+                    initial={formIn} animate={{ opacity: 1, x: 0 }}
+                    exit={formOut} transition={{ duration: 0.28, ease: "easeOut" }}
+                    className="w-full max-w-sm space-y-[14px]"
+                  >
+                    <RegisterForm
+                      regName={regName} setRegName={setRegName}
+                      regEmail={regEmail} setRegEmail={setRegEmail}
+                      regPassword={regPassword} setRegPassword={setRegPassword}
+                      regConfirm={regConfirm} setRegConfirm={setRegConfirm}
+                      showRegPw={showRegPw} setShowRegPw={setShowRegPw}
+                      agreed={agreed} setAgreed={setAgreed}
+                      loading={regLoading} onSubmit={handleRegister}
+                      onSwitchToLogin={switchToLogin}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
+
+          {/* Animated sliding panel */}
+          <motion.div
+            animate={{ left: mode === "login" ? "50%" : "0%" }}
+            transition={{ type: "spring", stiffness: 280, damping: 32 }}
+            className="hidden lg:flex absolute top-0 bottom-0 w-1/2 flex-col items-center justify-center p-10 z-20"
+            style={{
+              background: "linear-gradient(145deg, #1e1b4b 0%, #312e81 35%, #1e3a5f 65%, #0e7490 100%)",
+              borderRadius: mode === "login" ? "0 16px 16px 0" : "16px 0 0 16px",
+            }}
+          >
+            {/* Decorative rings */}
+            <div
+              className="absolute top-[-60px] right-[-60px] w-48 h-48 rounded-full opacity-20"
+              style={{ border: "1px solid rgba(255,255,255,0.4)" }}
+            />
+            <div
+              className="absolute bottom-[-40px] left-[-40px] w-36 h-36 rounded-full opacity-15"
+              style={{ border: "1px solid rgba(255,255,255,0.3)" }}
+            />
+
+            <div className="relative z-10 text-center space-y-7 w-full">
+              {/* Brand mark on panel */}
+              <motion.div
+                key={mode + "-logo"}
+                initial={{ scale: 0.88, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: 0.08, duration: 0.35 }}
+                className="flex items-center justify-center gap-3"
+              >
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}
+                >
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-bold text-white text-base leading-tight whitespace-nowrap">
+                  AI Portfolio Maker
+                </span>
+              </motion.div>
+
+              {/* Headline + sub-copy */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode + "-headline"}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-2.5"
+                >
+                  <h3 className="text-2xl font-bold text-white leading-tight">
+                    {mode === "login" ? "Don't have an account?" : "Already have an account?"}
+                  </h3>
+                  <p className="text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+                    {mode === "login"
+                      ? "Join thousands of professionals building standout portfolios with AI."
+                      : "Log back in to access your portfolios and credits."}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Feature list (login side only) */}
+              <AnimatePresence>
+                {mode === "login" && (
+                  <motion.div
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    transition={{ duration: 0.22 }}
+                    className="space-y-2.5 text-left"
+                  >
+                    {FEATURES.map((f, i) => (
+                      <motion.div
+                        key={f.text}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.04 * i, duration: 0.25 }}
+                        className="flex items-center gap-2.5 text-sm"
+                        style={{ color: "rgba(255,255,255,0.8)" }}
+                      >
+                        <div
+                          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: "rgba(255,255,255,0.12)" }}
+                        >
+                          <f.icon className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        {f.text}
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Panel CTA */}
+              <motion.button
+                onClick={mode === "login" ? switchToRegister : switchToLogin}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                className="w-full py-2.5 rounded-xl font-semibold text-sm transition-all"
+                style={{
+                  background: "rgba(255,255,255,0.14)",
+                  border: "1.5px solid rgba(255,255,255,0.38)",
+                  color: "#fff",
+                  backdropFilter: "blur(8px)",
+                  boxShadow: "0 2px 12px rgba(255,255,255,0.05)",
+                }}
+                onMouseEnter={(e) => {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.background = "rgba(255,255,255,0.22)";
+                  btn.style.boxShadow = "0 4px 22px rgba(255,255,255,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  const btn = e.currentTarget as HTMLButtonElement;
+                  btn.style.background = "rgba(255,255,255,0.14)";
+                  btn.style.boxShadow = "0 2px 12px rgba(255,255,255,0.05)";
+                }}
+              >
+                {mode === "login" ? "Create Account" : "Log In Instead"}
+              </motion.button>
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
-    </div>
       </div>
+    </div>
   );
 };
 

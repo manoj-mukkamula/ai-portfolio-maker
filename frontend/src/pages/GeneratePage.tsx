@@ -374,8 +374,8 @@ Projects:
                 <div className="flex items-center justify-between mt-1.5">
                   <p className={`text-xs ${charColor} font-medium transition-colors`}>
                     {charCount} characters
-                    {charCount > 0 && charCount < 200 && " — add more for richer results"}
-                    {charCount >= 200 && " — looks great!"}
+                    {charCount > 0 && charCount < 200 && " (add more for richer results)"}
+                    {charCount >= 200 && " (nice, this looks great!)"}
                   </p>
                   <p className="text-xs text-muted-foreground">Best with 200+ characters</p>
                 </div>

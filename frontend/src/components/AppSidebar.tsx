@@ -60,7 +60,7 @@ const AppSidebar = () => {
         <Link
           to="/"
           className={`flex items-center gap-3 mb-4 px-2 py-2 rounded-xl overflow-hidden hover:bg-secondary transition-colors ${collapsed ? "justify-center" : ""}`}
-          title="AI Portfolio Maker — Home"
+          title="AI Portfolio Maker"
         >
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
