@@ -41,6 +41,7 @@ const GeneratePage = () => {
   const [apiError, setApiError]                 = useState<{ kind: ErrorKind; msg: string } | null>(null);
 
   const isSubmittingRef = useRef(false);
+  const fileInputRef    = useRef<HTMLInputElement>(null);
   const selectedTpl     = TEMPLATES.find((t) => t.id === selectedTemplate);
 
   const handleDrop = useCallback(
@@ -247,9 +248,10 @@ Projects:
               ))}
             </div>
 
-            {/* Upload drop zone */}
+            {/* Upload drop zone — entire area is clickable */}
             {tab === "upload" ? (
               <div
+                onClick={() => !file && fileInputRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
@@ -258,9 +260,18 @@ Projects:
                     ? "border-2 border-primary bg-primary/5"
                     : file
                     ? "border-2 border-green-500/40 bg-green-500/5"
-                    : "border-2 border-dashed border-border hover:border-primary/40 hover:bg-primary/[0.02]"
+                    : "border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/[0.03] cursor-pointer"
                 }`}
               >
+                {/* Hidden file input — triggered by clicking anywhere in the box */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx"
+                  className="hidden"
+                  onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }}
+                />
+
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
@@ -269,7 +280,7 @@ Projects:
                     <p className="font-semibold text-foreground text-sm">{file.name}</p>
                     <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                     <button
-                      onClick={() => setFile(null)}
+                      onClick={(e) => { e.stopPropagation(); setFile(null); }}
                       className="flex items-center gap-1 text-xs text-destructive hover:underline mt-1"
                     >
                       <X className="w-3 h-3" /> Remove file
@@ -287,16 +298,14 @@ Projects:
                       <Upload className={`w-5 h-5 text-primary transition-transform duration-200 ${dragOver ? "scale-110" : ""}`} />
                     </div>
                     <p className="font-semibold text-foreground text-sm">Drag and drop your resume here</p>
-                    <p className="text-xs text-muted-foreground mt-1 mb-4">PDF or DOCX format, max 5MB</p>
-                    <label className="inline-flex items-center px-4 py-2 rounded-lg border border-border text-sm font-medium cursor-pointer hover:bg-secondary hover:border-primary/30 transition-all">
+                    <p className="text-xs text-muted-foreground mt-1 mb-4">PDF or DOCX format, max 5 MB</p>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                      className="inline-flex items-center px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-secondary hover:border-primary/30 transition-all"
+                    >
                       Select File
-                      <input
-                        type="file"
-                        accept=".pdf,.docx"
-                        className="hidden"
-                        onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }}
-                      />
-                    </label>
+                    </button>
+                    <p className="text-[10px] text-muted-foreground/50 mt-3">or click anywhere in this box</p>
                   </>
                 )}
               </div>

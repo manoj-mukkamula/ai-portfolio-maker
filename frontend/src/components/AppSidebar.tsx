@@ -1,6 +1,6 @@
 // src/components/AppSidebar.tsx
-// Improved: collapse toggle is now a clearly visible, professional button
-// with label text when expanded and a proper icon-only style when collapsed
+// Clean sidebar with collapse toggle, nav links, credits, and theme toggle.
+// Project name shown consistently in single-line format.
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -69,16 +69,13 @@ const AppSidebar = () => {
             <BrainCircuit className="w-5 h-5 text-white" />
           </div>
           {!collapsed && (
-            <div className="overflow-hidden">
-              <p className="text-sm font-bold text-foreground whitespace-nowrap leading-tight">
-                AI Portfolio Maker
-              </p>
-              <p className="text-xs text-muted-foreground tracking-wide mt-0.5">Final Year Project</p>
-            </div>
+            <p className="text-sm font-bold text-foreground whitespace-nowrap leading-tight">
+              AI Portfolio Maker
+            </p>
           )}
         </Link>
 
-        {/* Collapse toggle — clearly visible button */}
+        {/* Collapse toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           className={`flex items-center gap-2.5 px-3 py-2.5 mb-3 rounded-xl border text-sm font-medium transition-all duration-200 hover:bg-secondary hover:border-primary/30 hover:text-foreground ${
@@ -138,7 +135,7 @@ const AppSidebar = () => {
             {!collapsed && "New Portfolio"}
           </button>
 
-          {/* Credits — expanded only */}
+          {/* Credits — expanded */}
           {!collapsed && (
             <div className="px-3 py-3 rounded-xl bg-secondary/60 border border-border">
               <div className="flex items-center justify-between mb-2">
@@ -160,7 +157,7 @@ const AppSidebar = () => {
             </div>
           )}
 
-          {/* Credits icon — collapsed only */}
+          {/* Credits icon — collapsed */}
           {collapsed && (
             <div
               title={`${credits}/5 credits`}
@@ -170,7 +167,7 @@ const AppSidebar = () => {
             </div>
           )}
 
-          {/* Dark mode toggle */}
+          {/* Theme toggle */}
           <button
             onClick={toggleTheme}
             title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}

@@ -234,7 +234,7 @@ const HomePage = () => {
           </div>
 
           {/* 2-row layout: 3 on top, 2 on bottom centered */}
-          <div className="space-y-5 mb-16 mt-2">
+          <div className="space-y-10 mb-16 mt-2">
             {/* Row 1 — 3 cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {HOW_IT_WORKS.slice(0, 3).map((step) => (
@@ -308,8 +308,8 @@ const HomePage = () => {
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────── */}
-      <footer className="border-t border-border py-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-5">
+      <footer className="border-t border-border py-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div
               className="w-7 h-7 rounded-lg flex items-center justify-center"

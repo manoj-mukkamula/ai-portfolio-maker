@@ -415,6 +415,13 @@ const PreviewPage = () => {
               <span className="text-[10px] font-semibold text-primary uppercase tracking-wider hidden sm:inline">Fullscreen</span>
             </div>
           )}
+          {/* Hint: external links (LinkedIn, GitHub etc.) open in a new tab via JS intercept */}
+          {html && (
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary border border-border ml-1">
+              <ExternalLink className="w-3 h-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground">Links open in new tab</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-1">
           <button onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}

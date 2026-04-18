@@ -4,7 +4,7 @@
 //   - Light mode gets a premium warm-tinted code background
 //   - Dark mode keeps the classic GitHub-dark look
 //   - Ctrl+S save, copy, download, word-wrap all intact
-//   - No em dashes anywhere
+//   - External link intercept uses same logic as PreviewPage
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -16,61 +16,70 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Same robust intercept as PreviewPage — capture phase, stopImmediatePropagation,
+// window.open override. Prevents LinkedIn ERR_BLOCKED_BY_RESPONSE in editor preview.
 const LINK_INTERCEPT_SCRIPT = `
 <script>
 (function() {
+  'use strict';
+
   function isExternal(href) {
     if (!href) return false;
-    if (href === '#') return false;
-    if (href.startsWith('#')) return false;
-    if (href.startsWith('mailto:') || href.startsWith('tel:')) return false;
+    var trimmed = href.trim();
+    if (!trimmed || trimmed === '#') return false;
+    if (trimmed.startsWith('#')) return false;
+    if (trimmed.startsWith('mailto:') || trimmed.startsWith('tel:')) return false;
     return true;
   }
-  function normaliseUrl(href) {
-    if (href.startsWith('http://') || href.startsWith('https://')) return href;
-    // Bare domain like linkedin.com/in/user or github.com/user
-    if (href.indexOf('.') > 0 && !href.startsWith('/')) return 'https://' + href.replace(/^\\/+/, '');
-    return href;
+
+  function normalise(href) {
+    var trimmed = href.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.indexOf('.') > 0 && !trimmed.startsWith('/')) {
+      return 'https://' + trimmed.replace(/^\\/+/, '');
+    }
+    return trimmed;
   }
+
   document.addEventListener('click', function(e) {
-    var a = e.target.closest('a');
-    if (!a) return;
-    var href = (a.getAttribute('href') || '').trim();
+    var el = e.target;
+    while (el && el.tagName !== 'A') {
+      el = el.parentElement;
+    }
+    if (!el) return;
+
+    var href = (el.getAttribute('href') || '').trim();
     if (!href || href === '#') return;
 
-    // Anchor scroll — handle inside iframe
     if (href.startsWith('#')) {
       e.preventDefault();
-      e.stopPropagation();
-      var el = document.getElementById(href.slice(1)) || document.querySelector('[name="' + href.slice(1) + '"]');
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      e.stopImmediatePropagation();
+      var target = document.getElementById(href.slice(1))
+                || document.querySelector('[name="' + href.slice(1) + '"]');
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
 
-    // All external links → new tab, never inside iframe
-    // Prevents LinkedIn / GitHub X-Frame-Options errors
     if (isExternal(href)) {
       e.preventDefault();
-      e.stopPropagation();
-      window.open(normaliseUrl(href), '_blank', 'noopener,noreferrer');
+      e.stopImmediatePropagation();
+      window.open(normalise(href), '_blank', 'noopener,noreferrer');
     }
   }, true);
 
-  // Override window.open so any JS-triggered navigations also open in new tab
   var _open = window.open;
   window.open = function(url, target, features) {
     if (url && typeof url === 'string' && isExternal(url)) {
-      return _open.call(window, normaliseUrl(url), '_blank', 'noopener,noreferrer');
+      return _open.call(window, normalise(url), '_blank', 'noopener,noreferrer');
     }
     return _open.apply(window, arguments);
   };
+
 })();
 </script>
 `;
 
 // ─── Theme-aware editor styles ────────────────────────────────────────────────
-// Dark:  GitHub Dark inspired (classic for devs)
-// Light: Warm cream with deep slate text (premium, readable)
 const EDITOR_THEMES = {
   dark: {
     editorBg:    "#0d1117",
@@ -98,7 +107,6 @@ const EDITOR_THEMES = {
   },
 };
 
-// Minimum panel width as percentage
 const MIN_PCT = 20;
 const MAX_PCT = 80;
 
@@ -413,14 +421,11 @@ const EditorPage = () => {
           onPointerMove={onDividerPointerMove}
           onPointerUp={onDividerPointerUp}
         >
-          {/* Wider invisible hit area */}
           <div className="absolute inset-y-0 -left-2 -right-2" />
-          {/* Visual indicator */}
           <div
             className="absolute inset-y-0 w-[3px] rounded-full transition-all duration-150 group-hover:opacity-100 opacity-0"
             style={{ background: "linear-gradient(180deg, #6366f1, #8b5cf6)", left: "1px" }}
           />
-          {/* Center grip dots */}
           <div className="flex flex-col gap-1.5 relative z-10 opacity-40 group-hover:opacity-100 transition-opacity">
             {[0,1,2].map(i => (
               <div
