@@ -10,6 +10,7 @@ import AppLayout from "@/components/AppLayout";
 import { portfolioApi } from "@/lib/api";
 import { generateStore } from "@/lib/generateStore";
 import { TEMPLATES } from "@/lib/templates";
+import type { TemplateTag } from "@/lib/templates";
 import GeneratePreloader from "@/components/GeneratePreloader";
 import {
   Upload, FileText, Sparkles, Info,
@@ -28,6 +29,15 @@ const categorizeError = (msg: string): ErrorKind => {
   return "general";
 };
 
+const FILTERS: { label: string; value: string }[] = [
+  { label: "All",     value: "all"     },
+  { label: "Premium", value: "premium" },
+  { label: "Dark",    value: "dark"    },
+  { label: "Light",   value: "light"   },
+  { label: "Minimal", value: "minimal" },
+  { label: "Modern",  value: "modern"  },
+];
+
 const GeneratePage = () => {
   const { refreshUser, user } = useAuth();
   const navigate              = useNavigate();
@@ -41,10 +51,15 @@ const GeneratePage = () => {
   const [tipOpen, setTipOpen]                   = useState(true);
   const [apiError, setApiError]                 = useState<{ kind: ErrorKind; msg: string } | null>(null);
   const [showPreloader, setShowPreloader]       = useState(false);
+  const [templateFilter, setTemplateFilter]     = useState<string>("all");
 
   const isSubmittingRef = useRef(false);
   const fileInputRef    = useRef<HTMLInputElement>(null);
   const selectedTpl     = TEMPLATES.find((t) => t.id === selectedTemplate);
+
+  const filteredTemplates = templateFilter === "all"
+    ? TEMPLATES
+    : TEMPLATES.filter((t) => t.tags?.includes(templateFilter as TemplateTag));
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
@@ -83,7 +98,6 @@ const GeneratePage = () => {
 
     isSubmittingRef.current = true;
 
-    // Build API call
     let apiCall: Promise<any>;
     if (tab === "upload" && file) {
       const fd = new FormData();
@@ -99,8 +113,6 @@ const GeneratePage = () => {
       });
     }
 
-    // Store a promise that resolves with { portfolioId }
-    // PreviewPage will consume this via generateStore.take()
     const resultPromise = apiCall.then(async (res) => {
       const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
       if (!pid) throw new Error("No portfolio ID returned");
@@ -109,9 +121,6 @@ const GeneratePage = () => {
     });
 
     generateStore.set(resultPromise);
-
-    // Show the 10-second preloader — it calls onComplete() after 10s
-    // which then navigates to PreviewPage. API call is already running in background.
     setShowPreloader(true);
   };
 
@@ -153,7 +162,6 @@ Projects:
 
   return (
     <AppLayout>
-      {/* ── 10-second preloader overlay ───────────────────────────────────── */}
       {showPreloader && (
         <GeneratePreloader
           onComplete={() => {
@@ -164,7 +172,7 @@ Projects:
       )}
       <div className="max-w-5xl mx-auto animate-fade-in">
 
-        {/* ── Page Header ─────────────────────────────────────────────────── */}
+        {/* Page Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <Cpu className="w-3.5 h-3.5 text-primary" />
@@ -181,7 +189,7 @@ Projects:
           </p>
         </div>
 
-        {/* ── Error banners ────────────────────────────────────────────────── */}
+        {/* Error banners */}
         {apiError && (
           <div className={`mb-5 rounded-xl p-4 flex gap-3 border ${
             apiError.kind === "quota_daily"
@@ -240,7 +248,7 @@ Projects:
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-          {/* ── Left panel ──────────────────────────────────────────────────── */}
+          {/* Left panel */}
           <div className="lg:col-span-3 space-y-5">
 
             {/* Tabs */}
@@ -260,7 +268,7 @@ Projects:
               ))}
             </div>
 
-            {/* Upload drop zone — entire area is clickable */}
+            {/* Upload / Paste */}
             {tab === "upload" ? (
               <div
                 onClick={() => !file && fileInputRef.current?.click()}
@@ -275,7 +283,6 @@ Projects:
                     : "border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/[0.03] cursor-pointer"
                 }`}
               >
-                {/* Hidden file input — triggered by clicking anywhere in the box */}
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -283,7 +290,6 @@ Projects:
                   className="hidden"
                   onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }}
                 />
-
                 {file ? (
                   <div className="flex flex-col items-center gap-2">
                     <div className="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
@@ -347,55 +353,103 @@ Projects:
                 <h2 className="text-lg font-bold text-foreground">Select Template</h2>
                 <span className="text-xs text-muted-foreground">{TEMPLATES.length} templates available</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {TEMPLATES.map((tpl) => (
+
+              {/* Filter tabs */}
+              <div className="flex flex-wrap gap-1.5 mb-4">
+                {FILTERS.map((f) => (
                   <button
-                    key={tpl.id}
-                    onClick={() => setSelectedTemplate(tpl.id)}
-                    className={`text-left rounded-xl border-2 overflow-hidden transition-all duration-200 ${
-                      selectedTemplate === tpl.id
-                        ? "border-primary shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
-                        : "border-border hover:border-primary/30"
+                    key={f.value}
+                    onClick={() => setTemplateFilter(f.value)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all duration-150 border ${
+                      templateFilter === f.value
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-secondary text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
                     }`}
-                    style={selectedTemplate === tpl.id ? { background: "rgba(99,102,241,0.03)" } : {}}
                   >
-                    <div className="h-24 rounded-t-lg overflow-hidden bg-secondary relative">
-                      <iframe
-                        srcDoc={tpl.template}
-                        title={tpl.name}
-                        className="w-full h-full border-0 pointer-events-none"
-                        style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%", height: "250%" }}
-                        sandbox="allow-same-origin"
-                      />
-                      {selectedTemplate === tpl.id && (
-                        <div className="absolute top-2 right-2">
-                          <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
-                            <CheckCircle className="w-2.5 h-2.5" /> Selected
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="px-3 py-2.5 flex items-center justify-between">
-                      <div>
-                        <p className="font-semibold text-foreground text-sm">{tpl.name}</p>
-                        <p className="text-[10px] text-muted-foreground tracking-wide uppercase">{tpl.style}</p>
-                      </div>
-                      {tpl.premium && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white uppercase shrink-0">
-                          Premium
-                        </span>
-                      )}
-                    </div>
+                    {f.label}
+                    {f.value !== "all" && (
+                      <span className="ml-1 opacity-60">
+                        {TEMPLATES.filter((t) => t.tags?.includes(f.value as TemplateTag)).length}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
+
+              {/* Cards */}
+              {filteredTemplates.length === 0 ? (
+                <div className="py-8 text-center text-muted-foreground text-sm">
+                  No templates match this filter.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {filteredTemplates.map((tpl, idx) => (
+                    <button
+                      key={tpl.id}
+                      onClick={() => setSelectedTemplate(tpl.id)}
+                      className={`text-left rounded-xl border-2 overflow-hidden transition-all duration-200 ${
+                        selectedTemplate === tpl.id
+                          ? "border-primary shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
+                          : "border-border hover:border-primary/30"
+                      }`}
+                      style={selectedTemplate === tpl.id ? { background: "rgba(99,102,241,0.03)" } : {}}
+                    >
+                      <div className="h-24 rounded-t-lg overflow-hidden bg-secondary relative">
+                        <iframe
+                          srcDoc={tpl.template}
+                          title={tpl.name}
+                          className="w-full h-full border-0 pointer-events-none"
+                          style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%", height: "250%" }}
+                          sandbox="allow-same-origin"
+                        />
+                        {templateFilter === "all" && idx < 2 && (
+                          <div className="absolute top-2 left-2">
+                            <span
+                              className="flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                              style={{ background: idx === 0 ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "linear-gradient(135deg,#8b5cf6,#a78bfa)" }}
+                            >
+                              {idx === 0 ? "★ TOP PICK" : "★ FEATURED"}
+                            </span>
+                          </div>
+                        )}
+                        {selectedTemplate === tpl.id && (
+                          <div className="absolute top-2 right-2">
+                            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary text-primary-foreground">
+                              <CheckCircle className="w-2.5 h-2.5" /> Selected
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="px-3 py-2.5 flex items-center justify-between">
+                        <div>
+                          <p className="font-semibold text-foreground text-sm">{tpl.name}</p>
+                          <p className="text-[10px] text-muted-foreground tracking-wide uppercase">{tpl.style}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {tpl.tags?.includes("dark") && (
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">Dark</span>
+                          )}
+                          {tpl.tags?.includes("light") && (
+                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">Light</span>
+                          )}
+                          {tpl.premium && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white uppercase">
+                              Premium
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* ── Right panel ─────────────────────────────────────────────────── */}
+          {/* Right panel */}
           <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 lg:self-start">
 
-            {/* Live preview window */}
+            {/* Live preview */}
             <div className="bg-card rounded-xl border border-border overflow-hidden shadow-card">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                 <div className="flex items-center gap-2">
@@ -470,7 +524,7 @@ Projects:
           </div>
         </div>
 
-        {/* ── Generate button row ──────────────────────────────────────────── */}
+        {/* Generate button row */}
         <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
           <div className="flex items-center gap-2 text-sm">
             <Info className="w-4 h-4 text-primary" />
