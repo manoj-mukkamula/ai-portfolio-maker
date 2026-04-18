@@ -57,7 +57,7 @@ const AboutPage = () => {
               { label: "AI Engine", value: "Google Gemini API"                  },
               { label: "Auth",      value: "JWT + bcrypt"                        },
               { label: "Hosting",   value: "Deployable on any Node host"         },
-              { label: "Templates", value: "7 custom HTML/CSS designs"           },
+              { label: "Templates", value: "8 custom HTML/CSS designs"           },
             ].map((item) => (
               <div key={item.label} className="bg-secondary/50 rounded-xl p-4 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-elevated hover:bg-secondary/80 cursor-default">
                 <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-1">{item.label}</p>
@@ -79,7 +79,7 @@ const AboutPage = () => {
             {[
               "Parses PDF and DOCX resume files automatically",
               "Extracts structured data using Gemini AI",
-              "Supports 7 premium portfolio templates with distinct visual styles",
+              "Supports 8 portfolio templates with distinct visual styles",
               "Lets you edit the generated HTML directly in the browser",
               "Exports a self-contained HTML file you can host anywhere",
               "Includes a credit system with daily reset to keep usage fair",

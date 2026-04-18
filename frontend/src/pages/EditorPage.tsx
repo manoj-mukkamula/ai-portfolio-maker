@@ -19,34 +19,51 @@ import { useToast } from "@/hooks/use-toast";
 const LINK_INTERCEPT_SCRIPT = `
 <script>
 (function() {
-  function ensureHttps(href) {
-    if (
-      href.startsWith('http://') || href.startsWith('https://') ||
-      href.startsWith('mailto:') || href.startsWith('tel:')
-    ) return href;
-    // Bare URL e.g. github.com/user or linkedin.com/in/user - prepend https://
-    if (href.indexOf('.') > 0 && !href.startsWith('/') && !href.startsWith('#')) {
-      return 'https://' + href;
-    }
+  function isExternal(href) {
+    if (!href) return false;
+    if (href === '#') return false;
+    if (href.startsWith('#')) return false;
+    if (href.startsWith('mailto:') || href.startsWith('tel:')) return false;
+    return true;
+  }
+  function normaliseUrl(href) {
+    if (href.startsWith('http://') || href.startsWith('https://')) return href;
+    // Bare domain like linkedin.com/in/user or github.com/user
+    if (href.indexOf('.') > 0 && !href.startsWith('/')) return 'https://' + href.replace(/^\\/+/, '');
     return href;
   }
   document.addEventListener('click', function(e) {
     var a = e.target.closest('a');
     if (!a) return;
-    var href = a.getAttribute('href');
+    var href = (a.getAttribute('href') || '').trim();
     if (!href || href === '#') return;
+
+    // Anchor scroll — handle inside iframe
     if (href.startsWith('#')) {
       e.preventDefault();
       e.stopPropagation();
-      var target = document.querySelector(href);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var el = document.getElementById(href.slice(1)) || document.querySelector('[name="' + href.slice(1) + '"]');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-    // All external links open in a new tab - bare URLs get https:// prepended
-    e.preventDefault();
-    e.stopPropagation();
-    window.open(ensureHttps(href), '_blank', 'noopener,noreferrer');
+
+    // All external links → new tab, never inside iframe
+    // Prevents LinkedIn / GitHub X-Frame-Options errors
+    if (isExternal(href)) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(normaliseUrl(href), '_blank', 'noopener,noreferrer');
+    }
   }, true);
+
+  // Override window.open so any JS-triggered navigations also open in new tab
+  var _open = window.open;
+  window.open = function(url, target, features) {
+    if (url && typeof url === 'string' && isExternal(url)) {
+      return _open.call(window, normaliseUrl(url), '_blank', 'noopener,noreferrer');
+    }
+    return _open.apply(window, arguments);
+  };
 })();
 </script>
 `;

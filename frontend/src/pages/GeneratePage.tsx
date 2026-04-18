@@ -1,16 +1,14 @@
 // src/pages/GeneratePage.tsx
-// Fixed:
-//  - Generate button is always clearly visible in both light and dark mode
-//  - Disabled state uses solid muted colors (not transparent) for light mode legibility
-//  - After 10s preloader, immediately redirect to /preview/:id?loading=1
-//    so skeleton loading starts right away on the preview page
+// Flow: click Generate → immediately navigate to /preview/pending?loading=1
+//       API call fires in background, promise stored in generateStore
+//       PreviewPage picks up the promise and shows skeleton until it resolves
 
 import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
-import GeneratePreloader from "@/components/GeneratePreloader";
 import { portfolioApi } from "@/lib/api";
+import { generateStore } from "@/lib/generateStore";
 import { TEMPLATES } from "@/lib/templates";
 import {
   Upload, FileText, Sparkles, Info,
@@ -22,12 +20,10 @@ type ErrorKind = "quota_daily" | "quota_credits" | "general";
 
 const categorizeError = (msg: string): ErrorKind => {
   const lower = msg.toLowerCase();
-  if (lower.includes("daily") || lower.includes("midnight") || lower.includes("12:30") || lower.includes("quota reached")) {
+  if (lower.includes("daily") || lower.includes("midnight") || lower.includes("12:30") || lower.includes("quota reached"))
     return "quota_daily";
-  }
-  if (lower.includes("credit") || lower.includes("0 credit")) {
+  if (lower.includes("credit") || lower.includes("0 credit"))
     return "quota_credits";
-  }
   return "general";
 };
 
@@ -40,13 +36,10 @@ const GeneratePage = () => {
   const [file, setFile]                         = useState<File | null>(null);
   const [resumeText, setResumeText]             = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
-  const [showPreloader, setShowPreloader]       = useState(false);
   const [dragOver, setDragOver]                 = useState(false);
   const [tipOpen, setTipOpen]                   = useState(true);
   const [apiError, setApiError]                 = useState<{ kind: ErrorKind; msg: string } | null>(null);
-  const [pendingPortfolioId, setPendingPortfolioId] = useState<string | null>(null);
 
-  const apiPromiseRef   = useRef<Promise<any> | null>(null);
   const isSubmittingRef = useRef(false);
   const selectedTpl     = TEMPLATES.find((t) => t.id === selectedTemplate);
 
@@ -58,11 +51,7 @@ const GeneratePage = () => {
       if (f && (f.type === "application/pdf" || f.name.endsWith(".docx"))) {
         setFile(f);
       } else {
-        toast({
-          title:       "Invalid file type",
-          description: "Only PDF and DOCX files are accepted.",
-          variant:     "destructive",
-        });
+        toast({ title: "Invalid file type", description: "Only PDF and DOCX files are accepted.", variant: "destructive" });
       }
     },
     [toast]
@@ -91,7 +80,7 @@ const GeneratePage = () => {
 
     isSubmittingRef.current = true;
 
-    // Start the API call immediately in parallel with the preloader animation
+    // Build API call
     let apiCall: Promise<any>;
     if (tab === "upload" && file) {
       const fd = new FormData();
@@ -106,63 +95,29 @@ const GeneratePage = () => {
         templateName: selectedTpl!.id,
       });
     }
-    apiPromiseRef.current = apiCall;
 
-    // Cache the portfolio ID as soon as the API resolves (may finish during animation)
-    apiCall.then(async (res) => {
-      const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
-      if (pid) {
-        setPendingPortfolioId(pid);
-        await refreshUser();
-      }
-    }).catch(() => {
-      // handled in handlePreloaderComplete
-    });
-
-    setShowPreloader(true);
-  };
-
-  // Called when the 10s preloader animation ends
-  // Immediately navigate to /preview/:id?loading=1 so skeleton starts right away
-  const handlePreloaderComplete = async () => {
-    setShowPreloader(false);
-
-    // If API already resolved, navigate immediately
-    if (pendingPortfolioId) {
-      isSubmittingRef.current = false;
-      navigate(`/preview/${pendingPortfolioId}?loading=1`);
-      return;
-    }
-
-    // Otherwise wait for the API promise to settle, then navigate
-    try {
-      const res = await apiPromiseRef.current;
-      await refreshUser();
+    // Store a promise that resolves with { portfolioId }
+    // PreviewPage will consume this via generateStore.take()
+    const resultPromise = apiCall.then(async (res) => {
       const pid = res?.data?.portfolio?.id || res?.data?.portfolio?._id;
       if (!pid) throw new Error("No portfolio ID returned");
-      isSubmittingRef.current = false;
-      navigate(`/preview/${pid}?loading=1`);
-    } catch (err: any) {
-      isSubmittingRef.current = false;
-      const msg: string =
-        err?.response?.data?.message || err?.message || "Something went wrong. Please try again.";
+      await refreshUser();
+      return { portfolioId: pid as string };
+    });
 
-      const kind = categorizeError(msg);
-      if (kind !== "general") {
-        setApiError({ kind, msg });
-      } else {
-        toast({ title: "Generation failed", description: msg, variant: "destructive" });
-      }
-    }
+    generateStore.set(resultPromise);
+
+    // Navigate immediately — PreviewPage takes over from here
+    navigate("/preview/pending?loading=1");
   };
 
   const hasInput    = tab === "upload" ? !!file : resumeText.trim().length > 0;
   const canGenerate = hasInput && !!selectedTemplate && (user?.credits ?? 0) > 0;
   const charCount   = resumeText.length;
   const charColor   =
-    charCount === 0     ? "text-muted-foreground"
-    : charCount < 100   ? "text-red-500"
-    : charCount < 200   ? "text-amber-500"
+    charCount === 0   ? "text-muted-foreground"
+    : charCount < 100 ? "text-red-500"
+    : charCount < 200 ? "text-amber-500"
     : "text-green-500";
 
   const PASTE_PLACEHOLDER = `Paste your resume text here...
@@ -184,7 +139,6 @@ Projects:
   - DevConnect: Real-time developer networking app (React, Socket.io)
   - AutoResume: AI-powered resume builder using OpenAI API`;
 
-  // Disabled button hint text
   const hintText = !hasInput && !selectedTemplate
     ? "Add resume + template to begin"
     : !hasInput
@@ -195,36 +149,35 @@ Projects:
 
   return (
     <AppLayout>
-      {showPreloader && <GeneratePreloader onComplete={handlePreloaderComplete} />}
-
       <div className="max-w-5xl mx-auto animate-fade-in">
-        {/* Page Header */}
-        <div className="mb-5">
+
+        {/* ── Page Header ─────────────────────────────────────────────────── */}
+        <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <Cpu className="w-3.5 h-3.5 text-primary" />
             <p className="text-[11px] tracking-widest text-primary font-semibold uppercase">
               Gemini AI Engine
             </p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground mt-0.5">Portfolio Generator</h1>
-          <p className="text-muted-foreground mt-1 text-sm max-w-xl">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight mt-0.5">
+            Portfolio Generator
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-xl leading-relaxed">
             Upload your resume and let Google Gemini AI extract your details and build a
             professional portfolio website automatically.
           </p>
         </div>
 
-        {/* Error banners */}
+        {/* ── Error banners ────────────────────────────────────────────────── */}
         {apiError && (
           <div className={`mb-5 rounded-xl p-4 flex gap-3 border ${
             apiError.kind === "quota_daily"
               ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-700"
               : "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700"
           }`}>
-            {apiError.kind === "quota_daily" ? (
-              <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            ) : (
-              <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
-            )}
+            {apiError.kind === "quota_daily"
+              ? <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              : <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />}
             <div className="flex-1">
               <p className={`font-semibold text-sm mb-1 ${
                 apiError.kind === "quota_daily"
@@ -241,7 +194,7 @@ Projects:
                 {apiError.kind === "quota_daily" ? (
                   <>
                     The free Gemini API quota resets at midnight Pacific Time (around 12:30 PM IST).
-                    To generate right now, add a second key from a different Google account as{" "}
+                    Add a second key as{" "}
                     <code className="bg-amber-100 dark:bg-amber-800/50 px-1 rounded font-mono">
                       GEMINI_API_KEY_2
                     </code>{" "}
@@ -266,18 +219,17 @@ Projects:
                 </a>
               )}
             </div>
-            <button
-              onClick={() => setApiError(null)}
-              className="ml-auto text-muted-foreground hover:text-foreground shrink-0"
-            >
+            <button onClick={() => setApiError(null)} className="ml-auto text-muted-foreground hover:text-foreground shrink-0">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          {/* Left panel */}
+
+          {/* ── Left panel ──────────────────────────────────────────────────── */}
           <div className="lg:col-span-3 space-y-5">
+
             {/* Tabs */}
             <div className="flex border-b border-border">
               {(["upload", "paste"] as const).map((t) => (
@@ -295,6 +247,7 @@ Projects:
               ))}
             </div>
 
+            {/* Upload drop zone */}
             {tab === "upload" ? (
               <div
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
@@ -314,9 +267,7 @@ Projects:
                       <CheckCircle className="w-6 h-6 text-green-500" />
                     </div>
                     <p className="font-semibold text-foreground text-sm">{file.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
+                    <p className="text-xs text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                     <button
                       onClick={() => setFile(null)}
                       className="flex items-center gap-1 text-xs text-destructive hover:underline mt-1"
@@ -327,36 +278,23 @@ Projects:
                 ) : (
                   <>
                     <div
-                      className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center transition-all duration-200 ${
-                        dragOver ? "scale-110" : ""
-                      }`}
+                      className={`w-12 h-12 rounded-xl mx-auto mb-3 flex items-center justify-center transition-all duration-200 ${dragOver ? "scale-110" : ""}`}
                       style={{
-                        background:
-                          "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
+                        background: "linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12))",
                         border: "1px solid rgba(99,102,241,0.2)",
                       }}
                     >
-                      <Upload
-                        className={`w-5 h-5 text-primary transition-transform duration-200 ${
-                          dragOver ? "scale-110" : ""
-                        }`}
-                      />
+                      <Upload className={`w-5 h-5 text-primary transition-transform duration-200 ${dragOver ? "scale-110" : ""}`} />
                     </div>
-                    <p className="font-semibold text-foreground text-sm">
-                      Drag and drop your resume here
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1 mb-4">
-                      PDF or DOCX format, max 5MB
-                    </p>
+                    <p className="font-semibold text-foreground text-sm">Drag and drop your resume here</p>
+                    <p className="text-xs text-muted-foreground mt-1 mb-4">PDF or DOCX format, max 5MB</p>
                     <label className="inline-flex items-center px-4 py-2 rounded-lg border border-border text-sm font-medium cursor-pointer hover:bg-secondary hover:border-primary/30 transition-all">
                       Select File
                       <input
                         type="file"
                         accept=".pdf,.docx"
                         className="hidden"
-                        onChange={(e) => {
-                          if (e.target.files?.[0]) setFile(e.target.files[0]);
-                        }}
+                        onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }}
                       />
                     </label>
                   </>
@@ -375,7 +313,7 @@ Projects:
                   <p className={`text-xs ${charColor} font-medium transition-colors`}>
                     {charCount} characters
                     {charCount > 0 && charCount < 200 && " (add more for richer results)"}
-                    {charCount >= 200 && " (nice, this looks great!)"}
+                    {charCount >= 200 && " (looking great!)"}
                   </p>
                   <p className="text-xs text-muted-foreground">Best with 200+ characters</p>
                 </div>
@@ -386,9 +324,7 @@ Projects:
             <div>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-bold text-foreground">Select Template</h2>
-                <span className="text-xs text-muted-foreground">
-                  {TEMPLATES.length} templates available
-                </span>
+                <span className="text-xs text-muted-foreground">{TEMPLATES.length} templates available</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {TEMPLATES.map((tpl) => (
@@ -400,23 +336,14 @@ Projects:
                         ? "border-primary shadow-[0_0_0_3px_rgba(99,102,241,0.15)]"
                         : "border-border hover:border-primary/30"
                     }`}
-                    style={
-                      selectedTemplate === tpl.id
-                        ? { background: "rgba(99,102,241,0.03)" }
-                        : {}
-                    }
+                    style={selectedTemplate === tpl.id ? { background: "rgba(99,102,241,0.03)" } : {}}
                   >
                     <div className="h-24 rounded-t-lg overflow-hidden bg-secondary relative">
                       <iframe
                         srcDoc={tpl.template}
                         title={tpl.name}
                         className="w-full h-full border-0 pointer-events-none"
-                        style={{
-                          transform:       "scale(0.4)",
-                          transformOrigin: "top left",
-                          width:           "250%",
-                          height:          "250%",
-                        }}
+                        style={{ transform: "scale(0.4)", transformOrigin: "top left", width: "250%", height: "250%" }}
                         sandbox="allow-same-origin"
                       />
                       {selectedTemplate === tpl.id && (
@@ -430,9 +357,7 @@ Projects:
                     <div className="px-3 py-2.5 flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-foreground text-sm">{tpl.name}</p>
-                        <p className="text-[10px] text-muted-foreground tracking-wide uppercase">
-                          {tpl.style}
-                        </p>
+                        <p className="text-[10px] text-muted-foreground tracking-wide uppercase">{tpl.style}</p>
                       </div>
                       {tpl.premium && (
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gradient-to-r from-amber-500 to-orange-500 text-white uppercase shrink-0">
@@ -446,8 +371,10 @@ Projects:
             </div>
           </div>
 
-          {/* Right panel */}
+          {/* ── Right panel ─────────────────────────────────────────────────── */}
           <div className="lg:col-span-2 space-y-4 lg:sticky lg:top-6 lg:self-start">
+
+            {/* Live preview window */}
             <div className="bg-card rounded-xl border border-border overflow-hidden shadow-card">
               <div className="flex items-center justify-between px-4 py-2.5 border-b border-border">
                 <div className="flex items-center gap-2">
@@ -478,18 +405,14 @@ Projects:
                       <FileText className="w-5 h-5 text-muted-foreground/40" />
                     </div>
                     <p className="text-sm text-muted-foreground">Select a template to preview</p>
-                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mt-1">
-                      Preview renders here
-                    </p>
+                    <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mt-1">Preview renders here</p>
                   </div>
                 )}
               </div>
               {file && (
                 <div className="px-4 py-2 border-t border-border flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  <span className="text-xs text-muted-foreground truncate">
-                    Ready: {file.name}
-                  </span>
+                  <span className="text-xs text-muted-foreground truncate">Ready: {file.name}</span>
                 </div>
               )}
             </div>
@@ -504,11 +427,7 @@ Projects:
                   <Sparkles className="w-4 h-4 text-primary" />
                   <p className="font-semibold text-sm text-foreground">AI Tip</p>
                 </div>
-                <ChevronDown
-                  className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${
-                    tipOpen ? "rotate-180" : ""
-                  }`}
-                />
+                <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${tipOpen ? "rotate-180" : ""}`} />
               </button>
               {tipOpen && (
                 <div className="px-4 pb-3">
@@ -530,7 +449,7 @@ Projects:
           </div>
         </div>
 
-        {/* Generate button row */}
+        {/* ── Generate button row ──────────────────────────────────────────── */}
         <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
           <div className="flex items-center gap-2 text-sm">
             <Info className="w-4 h-4 text-primary" />
@@ -541,26 +460,24 @@ Projects:
             </span>
           </div>
 
-          {/* Generate button — always visible and readable in both light and dark mode */}
           <button
             onClick={handleGenerate}
-            disabled={!canGenerate || showPreloader}
+            disabled={!canGenerate}
             className={`
               relative flex items-center gap-2.5 font-bold text-sm rounded-xl
               transition-all duration-200 active:scale-[0.97] px-6 py-3
-              ${canGenerate && !showPreloader
+              ${canGenerate
                 ? "text-white cursor-pointer hover:shadow-xl hover:-translate-y-0.5"
                 : "cursor-not-allowed"
               }
             `}
             style={
-              canGenerate && !showPreloader
+              canGenerate
                 ? {
                     background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
                     boxShadow:  "0 4px 20px rgba(99,102,241,0.40)",
                   }
                 : {
-                    // Clearly visible disabled state in both light and dark mode
                     background: "var(--secondary)",
                     border: "1.5px dashed rgba(99,102,241,0.4)",
                     color: "rgba(99,102,241,0.6)",
@@ -569,7 +486,7 @@ Projects:
           >
             <Sparkles className="w-4 h-4 shrink-0" />
             <span>Generate Portfolio</span>
-            {!canGenerate && !showPreloader && (
+            {!canGenerate && (
               <span className="text-[10px] font-normal opacity-70 hidden sm:inline">
                 ({hintText})
               </span>

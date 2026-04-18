@@ -117,7 +117,7 @@ const SubmitButton = ({ loading, label }: { loading: boolean; label: string }) =
 // ─── Feature items on the sliding panel ───────────────────────────────────────
 const FEATURES = [
   { icon: Sparkles, text: "AI-powered resume parsing" },
-  { icon: FileText, text: "7 professional templates" },
+  { icon: FileText, text: "8 professional templates" },
   { icon: Zap,      text: "Generate in under 60 seconds" },
   { icon: Download, text: "Download as standalone HTML" },
   { icon: Star,     text: "5 free credits on signup" },
