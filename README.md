@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Artist%20palette/3D/artist_palette_3d.png" alt="AI Portfolio Maker" width="120" />
+<img src="./assets/logo.png" alt="AI Portfolio Maker" width="130" />
 
 # AI Portfolio Maker
 
