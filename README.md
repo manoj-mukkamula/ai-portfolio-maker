@@ -4,7 +4,7 @@
 
 Upload a PDF or DOCX, pick from 10 hand-crafted templates, and let Google Gemini handle the rest. The output is a clean, standalone `.html` file you can host anywhere for free.
 
-Built as a B.Tech final year major project — Computer Science and Engineering, JNTUH, 2026.
+Built as a B.Tech final year major project - Computer Science and Engineering, JNTUH, 2026.
 
 ![GitHub repo size](https://img.shields.io/github/repo-size/manoj-mukkamula/ai-portfolio-maker?style=flat-square&color=0d1117&labelColor=1a1a2e)
 ![Last commit](https://img.shields.io/github/last-commit/manoj-mukkamula/ai-portfolio-maker?style=flat-square&color=0d1117&labelColor=1a1a2e)
@@ -17,7 +17,7 @@ Built as a B.Tech final year major project — Computer Science and Engineering,
 
 Most students skip building a portfolio because it takes too long. You upload your resume, Gemini reads it, extracts your name, skills, projects, experience, and education, then populates a hand-crafted HTML template with everything. The result looks designed, not auto-generated.
 
-From there you get a live preview, a built-in HTML editor with split-screen output, and a one-click download. Host the file on GitHub Pages and you have a public URL — no server, no subscription.
+From there you get a live preview, a built-in HTML editor with split-screen output, and a one-click download. Host the file on GitHub Pages and you have a public URL - no server, no subscription.
 
 ---
 
@@ -28,7 +28,7 @@ From there you get a live preview, a built-in HTML editor with split-screen outp
 - Live template preview before generating
 - Google Gemini 1.5 Flash for content extraction and writing
 - Built-in HTML editor with live split-screen preview
-- Download as a self-contained `.html` file — no dependencies, host anywhere
+- Download as a self-contained `.html` file - no dependencies, host anywhere
 - GitHub Pages hosting guide built into the app
 - Credit system: 5 credits per account, resets every 24 hours
 - Portfolio history with view, edit, star, and delete
@@ -189,7 +189,7 @@ Frontend runs on `http://localhost:8080`. The Vite dev server proxies all `/api`
 ## Usage
 
 1. Open `http://localhost:8080`
-2. Register — you start with 5 free credits
+2. Register - you start with 5 free credits
 3. Go to **Generate**, upload your resume or paste the text
 4. Pick a template and click **Generate Portfolio**
 5. Preview it, edit the HTML if you want, download the `.html` file
@@ -236,7 +236,7 @@ Frontend runs on `http://localhost:8080`. The Vite dev server proxies all `/api`
 
 ## Deployment
 
-The backend deploys to any Node.js host — Render, Railway, Fly.io. The frontend builds to a static bundle with `npm run build` and deploys to Vercel or Netlify, or can be served directly by the backend.
+The backend deploys to any Node.js host - Render, Railway, Fly.io. The frontend builds to a static bundle with `npm run build` and deploys to Vercel or Netlify, or can be served directly by the backend.
 
 ![Render](https://img.shields.io/badge/Render-46E3B7?style=flat-square&logo=render&logoColor=black)
 ![Railway](https://img.shields.io/badge/Railway-0B0D0E?style=flat-square&logo=railway&logoColor=white)
@@ -252,7 +252,7 @@ The backend deploys to any Node.js host — Render, Railway, Fly.io. The fronten
 
 **Mukkamula Manoj**
 Final Year B.Tech, Computer Science and Engineering
-AAR Mahaveer Engineering College, JNTUH — 2026
+AAR Mahaveer Engineering College, JNTUH - 2026
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0A66C2?style=flat-square&logo=linkedin&logoColor=white)](https://www.linkedin.com/feed/)
 [![GitHub](https://img.shields.io/badge/GitHub-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/manoj-mukkamula/ai-portfolio-maker)
