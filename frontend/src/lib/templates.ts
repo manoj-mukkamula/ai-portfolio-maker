@@ -226,12 +226,12 @@ export const TEMPLATES = [
         <span class="contact-value">{{email}}</span>
         <span class="contact-arrow">→ send message</span>
       </a>
-      <a href="{{github}}" class="contact-item">
+      <a href="{{github}}" class="contact-item" target="_blank" rel="noopener noreferrer">
         <span class="contact-label">GitHub</span>
         <span class="contact-value">{{github}}</span>
         <span class="contact-arrow">→ view repos</span>
       </a>
-      <a href="{{linkedin}}" class="contact-item">
+      <a href="{{linkedin}}" class="contact-item" target="_blank" rel="noopener noreferrer">
         <span class="contact-label">LinkedIn</span>
         <span class="contact-value">{{linkedin}}</span>
         <span class="contact-arrow">→ connect</span>
@@ -347,7 +347,7 @@ export const TEMPLATES = [
     <div class="hero-cta-stack">
       <a href="#projects" class="cta-row">View selected work <span class="cta-arrow">↓</span></a>
       <a href="mailto:{{email}}" class="cta-row">Send an email <span class="cta-arrow">→</span></a>
-      <a href="{{linkedin}}" class="cta-row">LinkedIn profile <span class="cta-arrow">↗</span></a>
+      <a href="{{linkedin}}" class="cta-row" target="_blank" rel="noopener noreferrer">LinkedIn profile <span class="cta-arrow">↗</span></a>
     </div>
   </div>
 </section>
@@ -430,8 +430,8 @@ export const TEMPLATES = [
   <div class="footer-cell">
     <div class="footer-label">Contact</div>
     <a href="mailto:{{email}}" class="footer-link">{{email}}</a>
-    <a href="{{github}}" class="footer-link">{{github}}</a>
-    <a href="{{linkedin}}" class="footer-link">{{linkedin}}</a>
+    <a href="{{github}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{github}}</a>
+    <a href="{{linkedin}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{linkedin}}</a>
   </div>
   <div class="footer-cell">
     <div class="footer-label">Location</div>
@@ -537,7 +537,7 @@ export const TEMPLATES = [
     <p class="hero-sub">{{summary}}</p>
     <div class="hero-actions">
       <a href="#projects" class="btn-aurora">See my work</a>
-      <a href="{{github}}" class="btn-outline">GitHub ↗</a>
+      <a href="{{github}}" class="btn-outline" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
     </div>
     <div class="hero-meta">
       <span class="meta-tag">📍 {{location}}</span>
@@ -608,9 +608,9 @@ export const TEMPLATES = [
     <p class="contact-sub">{{summary}}</p>
     <a href="mailto:{{email}}" class="contact-email">{{email}}</a>
     <div class="contact-links">
-      <a href="{{github}}" class="c-link">GitHub</a>
-      <a href="{{linkedin}}" class="c-link">LinkedIn</a>
-      <a href="{{portfolio}}" class="c-link">Portfolio</a>
+      <a href="{{github}}" class="c-link" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="{{linkedin}}" class="c-link" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+      <a href="{{portfolio}}" class="c-link" target="_blank" rel="noopener noreferrer">Portfolio</a>
     </div>
   </div>
 </div>
@@ -707,7 +707,7 @@ export const TEMPLATES = [
       <p class="hero-summary">{{summary}}</p>
       <div class="hero-cta-row">
         <a href="#projects" class="btn-ink">View Projects</a>
-        <a href="{{github}}" class="btn-border">GitHub ↗</a>
+        <a href="{{github}}" class="btn-border" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
       </div>
     </div>
 
@@ -802,9 +802,9 @@ export const TEMPLATES = [
         <a href="mailto:{{email}}" class="footer-email">{{email}}</a>
       </div>
       <div>
-        <a href="{{github}}" class="footer-link">{{github}}</a>
-        <a href="{{linkedin}}" class="footer-link">{{linkedin}}</a>
-        <a href="{{portfolio}}" class="footer-link">{{portfolio}}</a>
+        <a href="{{github}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{github}}</a>
+        <a href="{{linkedin}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{linkedin}}</a>
+        <a href="{{portfolio}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{portfolio}}</a>
         <p style="font-size:0.8rem;color:rgba(247,244,239,0.3);margin-top:1rem;">{{phone}}</p>
       </div>
     </div>
@@ -1001,11 +1001,11 @@ export const TEMPLATES = [
           <span class="contact-type">// email</span>
           <span class="contact-val">{{email}}</span>
         </a>
-        <a href="{{github}}" class="contact-link">
+        <a href="{{github}}" class="contact-link" target="_blank" rel="noopener noreferrer">
           <span class="contact-type">// github</span>
           <span class="contact-val">{{github}}</span>
         </a>
-        <a href="{{linkedin}}" class="contact-link">
+        <a href="{{linkedin}}" class="contact-link" target="_blank" rel="noopener noreferrer">
           <span class="contact-type">// linkedin</span>
           <span class="contact-val">{{linkedin}}</span>
         </a>
@@ -1222,9 +1222,9 @@ export const TEMPLATES = [
     </div>
     <div>
       <div class="footer-col-head">Profiles</div>
-      <a href="{{github}}" class="footer-link">{{github}}</a>
-      <a href="{{linkedin}}" class="footer-link">{{linkedin}}</a>
-      <a href="{{portfolio}}" class="footer-link">{{portfolio}}</a>
+      <a href="{{github}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{github}}</a>
+      <a href="{{linkedin}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{linkedin}}</a>
+      <a href="{{portfolio}}" class="footer-link" target="_blank" rel="noopener noreferrer">{{portfolio}}</a>
     </div>
   </div>
 </footer>

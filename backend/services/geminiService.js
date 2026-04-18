@@ -284,6 +284,30 @@ const generatePortfolioHTML = async (resumeText, template) => {
           }
         }
 
+
+        // Normalize URL fields so links work correctly in every browser.
+        // Gemini sometimes returns bare URLs like "github.com/user" or
+        // "linkedin.com/in/user" without the https:// scheme. Without it,
+        // the browser treats them as relative paths and they 404 every time.
+        const URL_FIELDS = ["github", "linkedin", "portfolio"];
+        for (const field of URL_FIELDS) {
+          const raw = String(data[field] || "").trim();
+          if (raw && !raw.startsWith("http://") && !raw.startsWith("https://") && !raw.startsWith("mailto:")) {
+            // Strip any accidental leading slashes before prepending
+            data[field] = "https://" + raw.replace(/^\/+/, "");
+          }
+          // Ensure trailing slash for profile URLs (linkedin.com/in/user and github.com/user)
+          // so the redirect resolves cleanly. Only add if it looks like a profile root URL.
+          if (data[field]) {
+            const u = data[field];
+            const isProfileUrl =
+              (u.includes("linkedin.com/in/") || u.includes("github.com/")) &&
+              !u.includes("?") &&
+              !u.endsWith("/");
+            if (isProfileUrl) data[field] = u + "/";
+          }
+        }
+
         let finalHTML = template;
         for (const [key, value] of Object.entries(data)) {
           finalHTML = finalHTML.replace(

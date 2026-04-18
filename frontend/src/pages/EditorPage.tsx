@@ -19,11 +19,22 @@ import { useToast } from "@/hooks/use-toast";
 const LINK_INTERCEPT_SCRIPT = `
 <script>
 (function() {
+  function ensureHttps(href) {
+    if (
+      href.startsWith('http://') || href.startsWith('https://') ||
+      href.startsWith('mailto:') || href.startsWith('tel:')
+    ) return href;
+    // Bare URL e.g. github.com/user or linkedin.com/in/user - prepend https://
+    if (href.indexOf('.') > 0 && !href.startsWith('/') && !href.startsWith('#')) {
+      return 'https://' + href;
+    }
+    return href;
+  }
   document.addEventListener('click', function(e) {
     var a = e.target.closest('a');
     if (!a) return;
     var href = a.getAttribute('href');
-    if (!href) return;
+    if (!href || href === '#') return;
     if (href.startsWith('#')) {
       e.preventDefault();
       e.stopPropagation();
@@ -31,12 +42,10 @@ const LINK_INTERCEPT_SCRIPT = `
       if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-    if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:')) {
-      e.preventDefault();
-      e.stopPropagation();
-      window.open(href, '_blank', 'noopener,noreferrer');
-      return;
-    }
+    // All external links open in a new tab - bare URLs get https:// prepended
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(ensureHttps(href), '_blank', 'noopener,noreferrer');
   }, true);
 })();
 </script>
