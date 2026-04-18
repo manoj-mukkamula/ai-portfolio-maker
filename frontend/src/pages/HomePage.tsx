@@ -24,7 +24,7 @@ const FEATURES = [
   },
   {
     icon: Palette,
-    title: "8 premium templates",
+    title: "10 unique templates",
     desc: "Hand-crafted templates spanning minimal, dark, editorial, and luxury design styles. Pick the one that fits your personality.",
     color: "#8b5cf6",
   },

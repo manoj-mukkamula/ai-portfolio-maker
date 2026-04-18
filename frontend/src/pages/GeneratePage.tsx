@@ -118,6 +118,12 @@ const GeneratePage = () => {
       if (!pid) throw new Error("No portfolio ID returned");
       await refreshUser();
       return { portfolioId: pid as string };
+    }).catch((err: any) => {
+      const msg: string = err?.response?.data?.message || err?.message || "Something went wrong. Please try again.";
+      setApiError({ kind: categorizeError(msg), msg });
+      setShowPreloader(false);
+      isSubmittingRef.current = false;
+      throw err;
     });
 
     generateStore.set(resultPromise);
@@ -173,14 +179,14 @@ Projects:
       <div className="max-w-5xl mx-auto animate-fade-in">
 
         {/* Page Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
+        <div className="mb-7">
+          <div className="flex items-center gap-2 mb-1.5">
             <Cpu className="w-3.5 h-3.5 text-primary" />
             <p className="text-[11px] tracking-widest text-primary font-semibold uppercase">
               Gemini AI Engine
             </p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight mt-0.5">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Portfolio Generator
           </h1>
           <p className="text-sm text-muted-foreground mt-1.5 max-w-xl leading-relaxed">
@@ -257,7 +263,7 @@ Projects:
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`px-4 py-2.5 text-sm font-medium transition-colors capitalize ${
+                  className={`px-4 py-2.5 text-sm font-semibold transition-colors capitalize ${
                     tab === t
                       ? "text-primary border-b-2 border-primary"
                       : "text-muted-foreground hover:text-foreground"
@@ -291,7 +297,7 @@ Projects:
                   onChange={(e) => { if (e.target.files?.[0]) setFile(e.target.files[0]); }}
                 />
                 {file ? (
-                  <div className="flex flex-col items-center gap-2">
+                  <div className="flex flex-col items-center gap-2.5">
                     <div className="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
                       <CheckCircle className="w-6 h-6 text-green-500" />
                     </div>
@@ -334,7 +340,7 @@ Projects:
                   onChange={(e) => setResumeText(e.target.value)}
                   placeholder={PASTE_PLACEHOLDER}
                   rows={12}
-                  className="w-full rounded-xl bg-secondary border border-border p-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all font-mono"
+                  className="w-full rounded-xl bg-secondary border border-border p-4 text-sm text-foreground placeholder:text-muted-foreground/40 focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none transition-all font-mono leading-relaxed"
                 />
                 <div className="flex items-center justify-between mt-1.5">
                   <p className={`text-xs ${charColor} font-medium transition-colors`}>
@@ -350,8 +356,8 @@ Projects:
             {/* Template grid */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-lg font-bold text-foreground">Select Template</h2>
-                <span className="text-xs text-muted-foreground">{TEMPLATES.length} templates available</span>
+                <h2 className="text-base font-bold text-foreground">Select Template</h2>
+                <span className="text-xs text-muted-foreground">{TEMPLATES.length} templates</span>
               </div>
 
               {/* Filter tabs */}
@@ -422,8 +428,8 @@ Projects:
                       </div>
                       <div className="px-3 py-2.5 flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-foreground text-sm">{tpl.name}</p>
-                          <p className="text-[10px] text-muted-foreground tracking-wide uppercase">{tpl.style}</p>
+                          <p className="font-semibold text-foreground text-sm leading-tight">{tpl.name}</p>
+                          <p className="text-[10px] text-muted-foreground tracking-wide uppercase mt-0.5">{tpl.style}</p>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
                           {tpl.tags?.includes("dark") && (
@@ -458,10 +464,10 @@ Projects:
                     <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
                     <span className="w-2.5 h-2.5 rounded-full bg-green-400" />
                   </div>
-                  <span className="text-xs text-muted-foreground">Live Preview</span>
+                  <span className="text-xs text-muted-foreground font-medium">Live Preview</span>
                 </div>
                 {selectedTpl && (
-                  <span className="text-[10px] font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                     {selectedTpl.name}
                   </span>
                 )}
@@ -476,10 +482,10 @@ Projects:
                   />
                 ) : (
                   <div className="text-center px-6">
-                    <div className="w-10 h-10 rounded-xl bg-border flex items-center justify-center mx-auto mb-2">
+                    <div className="w-10 h-10 rounded-xl bg-border flex items-center justify-center mx-auto mb-2.5">
                       <FileText className="w-5 h-5 text-muted-foreground/40" />
                     </div>
-                    <p className="text-sm text-muted-foreground">Select a template to preview</p>
+                    <p className="text-sm font-medium text-muted-foreground">Select a template to preview</p>
                     <p className="text-[10px] text-muted-foreground/50 uppercase tracking-wider mt-1">Preview renders here</p>
                   </div>
                 )}
@@ -505,7 +511,7 @@ Projects:
                 <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${tipOpen ? "rotate-180" : ""}`} />
               </button>
               {tipOpen && (
-                <div className="px-4 pb-3">
+                <div className="px-4 pb-3.5">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Include your name, email, skills, education, and at least two projects for
                     the best results. The more detail you add, the richer your portfolio will be.
@@ -516,7 +522,7 @@ Projects:
 
             {(user?.credits ?? 0) === 0 && (
               <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700 p-4">
-                <p className="text-sm text-amber-800 dark:text-amber-300 font-medium">
+                <p className="text-sm text-amber-800 dark:text-amber-300 font-medium leading-relaxed">
                   You have 0 credits remaining. They reset automatically every 24 hours.
                 </p>
               </div>
@@ -527,7 +533,7 @@ Projects:
         {/* Generate button row */}
         <div className="flex items-center justify-between mt-7 pt-5 border-t border-border">
           <div className="flex items-center gap-2 text-sm">
-            <Info className="w-4 h-4 text-primary" />
+            <Info className="w-4 h-4 text-primary shrink-0" />
             <span className="text-muted-foreground text-sm">Cost per generation:</span>
             <span className="text-primary font-semibold">1 Credit</span>
             <span className="text-muted-foreground text-sm hidden sm:inline">

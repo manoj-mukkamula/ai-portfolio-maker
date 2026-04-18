@@ -20,13 +20,16 @@ interface Portfolio {
 }
 
 const TEMPLATE_META: Record<string, { bg: string; color: string; label: string }> = {
-  "glass-terminal":    { bg: "#060a12", color: "#00ff88", label: "Glass Terminal"    },
-  "brutalist-grid":    { bg: "#0a0a0a", color: "#ffdd00", label: "Brutalist Grid"    },
-  "aurora-luxury":     { bg: "#1a0533", color: "#a78bfa", label: "Aurora Luxury"     },
-  "swiss-precision":   { bg: "#f7f4ef", color: "#0050ff", label: "Swiss Precision"   },
-  "obsidian-code":     { bg: "#1e1e2e", color: "#cba6f7", label: "Obsidian Code"     },
-  "kinetic-magazine":  { bg: "#faf8f3", color: "#c84b11", label: "Kinetic Magazine"  },
-  "deep-dark-minimal": { bg: "#090910", color: "#4f8ef7", label: "Deep Dark Minimal" },
+  "glass-terminal":     { bg: "#060a12", color: "#00ff88", label: "Glass Terminal"    },
+  "brutalist-grid":     { bg: "#0a0a0a", color: "#ffdd00", label: "Brutalist Grid"    },
+  "aurora-luxury":      { bg: "#1a0533", color: "#a78bfa", label: "Aurora Luxury"     },
+  "swiss-precision":    { bg: "#f7f4ef", color: "#0050ff", label: "Swiss Precision"   },
+  "obsidian-code":      { bg: "#1e1e2e", color: "#cba6f7", label: "Obsidian Code"     },
+  "kinetic-magazine":   { bg: "#faf8f3", color: "#c84b11", label: "Kinetic Magazine"  },
+  "deep-dark-minimal":  { bg: "#090910", color: "#4f8ef7", label: "Deep Dark Minimal" },
+  "clean-light-unique": { bg: "#fafaf9", color: "#2563eb", label: "Clean Light Unique"},
+  "aurora-studio":      { bg: "#f7f6f2", color: "#6366f1", label: "Aurora Studio"     },
+  "vanta-pro":          { bg: "#08080a", color: "#818cf8", label: "Vanta Pro"         },
 };
 
 type Filter = "all" | "thisweek" | "starred";

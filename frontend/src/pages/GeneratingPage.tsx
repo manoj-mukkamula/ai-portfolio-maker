@@ -419,15 +419,104 @@ function SkeletonVantaPro() {
   );
 }
 
+function SkeletonDeepDarkMinimal() {
+  return (
+    <div className="min-h-screen p-0 overflow-hidden" style={{ background: "#090910" }}>
+      <div className="h-14 border-b flex items-center px-10 justify-between" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+        <Sh w="140px" h="11px" />
+        <div className="flex gap-6">
+          {[60, 72, 56, 64].map((w, i) => <Sh key={i} w={`${w}px`} h="10px" delay={i * 60} />)}
+        </div>
+      </div>
+      <div className="max-w-3xl mx-auto px-8 pt-24 pb-12">
+        <Sh w="120px" h="10px" delay={80} />
+        <div className="mt-6 space-y-3">
+          <Sh w="80%" h="56px" delay={120} radius="6px" />
+          <Sh w="60%" h="56px" delay={160} radius="6px" />
+        </div>
+        <div className="mt-8 space-y-2">
+          <Sh w="480px" h="12px" delay={200} />
+          <Sh w="360px" h="12px" delay={240} />
+        </div>
+        <div className="mt-8 flex gap-4">
+          <Sh w="140px" h="44px" delay={280} radius="8px" />
+          <Sh w="120px" h="44px" delay={320} radius="8px" />
+        </div>
+        <div className="mt-16 space-y-4">
+          <Sh w="80px" h="10px" delay={80} />
+          <div className="flex flex-wrap gap-2 mt-3">
+            {[80, 68, 96, 60, 84, 72, 88, 64].map((w, i) => (
+              <Sh key={i} w={`${w}px`} h="30px" delay={i * 40} radius="6px" />
+            ))}
+          </div>
+        </div>
+        <div className="mt-12 space-y-4">
+          <Sh w="100px" h="10px" delay={80} />
+          <div className="grid grid-cols-2 gap-4 mt-3">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className="p-5 rounded-xl space-y-2" style={{ background: "rgba(79,142,247,0.06)", border: "1px solid rgba(79,142,247,0.1)" }}>
+                <Sh w="60%" h="13px" delay={i * 60} />
+                <Sh w="100%" h="10px" delay={i * 60 + 40} />
+                <Sh w="80%" h="10px" delay={i * 60 + 80} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonCleanLightUnique() {
+  return (
+    <div className="min-h-screen p-0 overflow-hidden" style={{ background: "#fafaf9" }}>
+      <div className="h-16 border-b flex items-center px-10 justify-between" style={{ borderColor: "#e5e3de" }}>
+        <Sh w="160px" h="12px" />
+        <div className="flex gap-8">
+          {[52, 60, 48, 64].map((w, i) => <Sh key={i} w={`${w}px`} h="10px" delay={i * 60} />)}
+        </div>
+        <Sh w="100px" h="36px" radius="8px" delay={200} />
+      </div>
+      <div className="max-w-4xl mx-auto px-8 pt-20 pb-12">
+        <Sh w="120px" h="10px" delay={80} />
+        <div className="mt-5 space-y-3">
+          <Sh w="75%" h="52px" delay={120} radius="4px" />
+          <Sh w="55%" h="52px" delay={160} radius="4px" />
+        </div>
+        <div className="mt-6 space-y-2">
+          <Sh w="440px" h="13px" delay={200} />
+          <Sh w="340px" h="13px" delay={240} />
+        </div>
+        <div className="mt-8 flex gap-3">
+          <Sh w="140px" h="44px" delay={280} radius="8px" />
+          <Sh w="120px" h="44px" delay={320} radius="8px" />
+        </div>
+        <div className="mt-14 grid grid-cols-3 gap-5">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="p-6 rounded-xl space-y-3" style={{ background: "#fff", border: "1px solid #e5e3de" }}>
+              <Sh w="40px" h="40px" radius="10px" delay={i * 80} />
+              <Sh w="70%" h="14px" delay={i * 80 + 40} />
+              <Sh w="100%" h="11px" delay={i * 80 + 80} />
+              <Sh w="90%" h="11px" delay={i * 80 + 120} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SKELETON_MAP: Record<string, React.FC> = {
-  "glass-terminal":   SkeletonGlassTerminal,
-  "brutalist-grid":   SkeletonBrutalistGrid,
-  "aurora-luxury":    SkeletonAuroraLuxury,
-  "swiss-precision":  SkeletonSwissPrecision,
-  "obsidian-code":    SkeletonObsidianCode,
-  "kinetic-magazine": SkeletonKineticMagazine,
-  "aurora-studio":    SkeletonAuroraStudio,
-  "vanta-pro":        SkeletonVantaPro,
+  "glass-terminal":     SkeletonGlassTerminal,
+  "brutalist-grid":     SkeletonBrutalistGrid,
+  "aurora-luxury":      SkeletonAuroraLuxury,
+  "swiss-precision":    SkeletonSwissPrecision,
+  "obsidian-code":      SkeletonObsidianCode,
+  "kinetic-magazine":   SkeletonKineticMagazine,
+  "aurora-studio":      SkeletonAuroraStudio,
+  "vanta-pro":          SkeletonVantaPro,
+  "deep-dark-minimal":  SkeletonDeepDarkMinimal,
+  "clean-light-unique": SkeletonCleanLightUnique,
 };
 
 // ─── GeneratingPage ──────────────────────────────────────────────────────────

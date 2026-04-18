@@ -21,14 +21,16 @@ interface Portfolio {
 }
 
 const TEMPLATE_STYLES: Record<string, { bg: string; accent: string; label: string }> = {
-  "glass-terminal":   { bg: "from-[#060a12] to-[#0d2137]",  accent: "#00ff88",  label: "Glass Terminal"   },
-  "brutalist-grid":   { bg: "from-[#0a0a0a] to-[#1a1a1a]",  accent: "#ffdd00",  label: "Brutalist Grid"   },
-  "aurora-luxury":    { bg: "from-[#1a0533] to-[#08090d]",   accent: "#a78bfa",  label: "Aurora Luxury"    },
-  "swiss-precision":  { bg: "from-[#f7f4ef] to-[#ede9e1]",   accent: "#0050ff",  label: "Swiss Precision"  },
-  "obsidian-code":    { bg: "from-[#1e1e2e] to-[#0a0a0a]",   accent: "#cba6f7",  label: "Obsidian Code"    },
-  "kinetic-magazine": { bg: "from-[#faf8f3] to-[#f0ebe0]",   accent: "#c84b11",  label: "Kinetic Magazine" },
-  "deep-dark-minimal":  { bg: "from-[#090910] to-[#0f0f1a]", accent: "#4f8ef7",  label: "Deep Dark Minimal"  },
-  "clean-light-unique": { bg: "from-[#fafaf9] to-[#e8e5e0]", accent: "#2563eb",  label: "Clean Light Unique" },
+  "glass-terminal":     { bg: "from-[#060a12] to-[#0d2137]",  accent: "#00ff88",  label: "Glass Terminal"    },
+  "brutalist-grid":     { bg: "from-[#0a0a0a] to-[#1a1a1a]",  accent: "#ffdd00",  label: "Brutalist Grid"    },
+  "aurora-luxury":      { bg: "from-[#1a0533] to-[#08090d]",   accent: "#a78bfa",  label: "Aurora Luxury"     },
+  "swiss-precision":    { bg: "from-[#f7f4ef] to-[#ede9e1]",   accent: "#0050ff",  label: "Swiss Precision"   },
+  "obsidian-code":      { bg: "from-[#1e1e2e] to-[#0a0a0a]",   accent: "#cba6f7",  label: "Obsidian Code"     },
+  "kinetic-magazine":   { bg: "from-[#faf8f3] to-[#f0ebe0]",   accent: "#c84b11",  label: "Kinetic Magazine"  },
+  "deep-dark-minimal":  { bg: "from-[#090910] to-[#0f0f1a]",   accent: "#4f8ef7",  label: "Deep Dark Minimal" },
+  "clean-light-unique": { bg: "from-[#fafaf9] to-[#e8e5e0]",   accent: "#2563eb",  label: "Clean Light Unique"},
+  "aurora-studio":      { bg: "from-[#f7f6f2] to-[#ece8df]",   accent: "#6366f1",  label: "Aurora Studio"     },
+  "vanta-pro":          { bg: "from-[#08080a] to-[#111118]",    accent: "#818cf8",  label: "Vanta Pro"         },
 };
 
 function PortfolioCard({

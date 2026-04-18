@@ -1,316 +1,230 @@
 # AI Portfolio Maker
 
-> **B.Tech Major Project — Computer Science & Engineering**
-> AI-powered web application that converts a resume (PDF/DOCX) into a fully-designed, downloadable portfolio website using Google Gemini AI.
+A full-stack web application that turns your resume into a professional portfolio website using Google Gemini AI. Upload a PDF or DOCX, choose a template, and get a fully built portfolio in under a minute.
+
+Built as a B.Tech final year major project (Computer Science and Engineering, JNTUH, 2026).
 
 ---
 
-## 📌 Project Overview
+## What it does
 
-**AI Portfolio Maker** is a full-stack web application that automates the creation of professional portfolio websites. Users upload their resume, choose a visual template, and the system uses the **Google Gemini 1.5 Flash** large language model to intelligently extract structured data from the resume and populate the selected HTML template — producing a unique, styled portfolio page in seconds.
+Most students skip building a portfolio because it takes too long. This project solves that. You upload your resume, the AI reads it, extracts your name, skills, projects, experience, and education, then fills a hand-crafted HTML template with all of it. The result is a portfolio that looks designed, not generated.
 
-The project demonstrates the practical application of Generative AI (LLM API integration), document processing (PDF/DOCX parsing), RESTful API design, and modern frontend development within a secure, user-authenticated web system.
-
----
-
-## ✨ Features
-
-### AI Features (Core)
-- **Resume → Portfolio Generation** — Gemini 1.5 Flash reads resume text (from PDF/DOCX upload or pasted text) and fills HTML template placeholders with accurate, context-aware content
-- **Intelligent Data Extraction** — AI infers skills, projects, experience, education, and contact details without rigid form filling
-- **Tone Adaptation** — The AI adjusts language and presentation style based on the selected portfolio template
-
-### Application Features
-- **6 Professional HTML Templates** — Glass Terminal, Brutalist Grid, Aurora Luxury, Swiss Precision, Obsidian Code, Kinetic Magazine
-- **Live Template Preview** — Real-time iframe preview before generation
-- **HTML Editor** — After generation, users can manually edit the raw HTML with a live split-screen preview
-- **Portfolio Download** — Generated portfolios download as standalone `.html` files (no server dependency)
-- **Portfolio History** — All generated portfolios are stored per-user with view, edit, and delete controls
-- **Credit System** — Each generation costs 1 credit; credits tracked per user in MongoDB
-- **JWT Authentication** — Secure login/register with bcrypt password hashing and JWT token auth
-- **File Upload** — Multer-based PDF and DOCX file upload with server-side parsing
+You can then preview the output in the browser, edit the HTML directly, and download a standalone `.html` file you can host anywhere for free.
 
 ---
 
-## 🛠 Tech Stack
+## Features
+
+- Resume parsing for PDF and DOCX files
+- Paste resume text as an alternative to file upload
+- 10 professionally designed portfolio templates with distinct visual styles
+- Live template preview before generating
+- Google Gemini 1.5 Flash powers the content extraction and writing
+- Built-in HTML editor with live split-screen preview
+- Download your portfolio as a self-contained HTML file
+- Host on GitHub Pages in a few clicks (guided instructions included)
+- Credit system: 5 credits per account, resets every 24 hours
+- Portfolio history: view, edit, star, and delete past portfolios
+- Dark and light mode support across all pages
+- JWT authentication with secure password hashing
+
+---
+
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Axios |
-| **Backend** | Node.js, Express.js |
-| **Database** | MongoDB Atlas (Mongoose ODM) |
-| **AI / LLM** | Google Gemini 1.5 Flash API (`@google/generative-ai`) |
-| **Authentication** | JWT (jsonwebtoken), bcryptjs |
-| **File Parsing** | pdf-parse (PDF), mammoth (DOCX) |
-| **Security** | Helmet.js, CORS, express-rate-limit, Zod validation |
-| **Dev Tools** | Nodemon, ESLint, Vitest |
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| Backend | Node.js, Express.js |
+| Database | MongoDB Atlas (Mongoose ODM) |
+| AI Engine | Google Gemini 1.5 Flash API |
+| Auth | JWT, bcryptjs |
+| File Parsing | pdf-parse (PDF), mammoth (DOCX) |
+| Security | Helmet.js, CORS, express-rate-limit, Zod validation |
 
 ---
 
-## 📁 Folder Structure
+## Folder Structure
 
 ```
 ai-portfolio-maker/
-│
-├── backend/                        # Node.js + Express API server
-│   ├── config/
-│   │   └── db.js                   # MongoDB connection
+├── backend/
+│   ├── config/db.js                  # MongoDB connection
 │   ├── controllers/
-│   │   ├── authController.js       # Register, login, getMe
-│   │   └── portfolioController.js  # Generate, CRUD portfolios
+│   │   ├── authController.js         # Register, login, getMe
+│   │   └── portfolioController.js    # Generate and CRUD portfolios
 │   ├── middleware/
-│   │   ├── authMiddleware.js       # JWT verification
-│   │   ├── errorHandler.js         # Global error handler
-│   │   └── rateLimiter.js          # express-rate-limit config
+│   │   ├── authMiddleware.js         # JWT verification
+│   │   ├── errorHandler.js           # Global error handler
+│   │   └── rateLimiter.js            # Request rate limiting
 │   ├── models/
-│   │   ├── User.js                 # User schema (name, email, password hash, credits)
-│   │   └── Portfolio.js            # Portfolio schema (userId, html, templateName)
+│   │   ├── User.js                   # User schema
+│   │   └── Portfolio.js              # Portfolio schema
 │   ├── routes/
-│   │   ├── authRoutes.js           # POST /api/auth/register, /login, GET /me
-│   │   └── portfolioRoutes.js      # POST /generate, GET /history, GET /:id, PUT /:id, DELETE /:id
-│   ├── services/
-│   │   └── geminiService.js        # Gemini API integration — core AI logic
-│   ├── utils/
-│   │   └── resumeParser.js         # PDF and DOCX text extraction
-│   ├── validators/
-│   │   └── portfolioValidator.js   # Zod schema validators
-│   ├── .env.example                # Environment variable template
-│   ├── app.js                      # Express app setup (middleware, routes)
-│   ├── server.js                   # Entry point — connects DB and starts server
-│   └── package.json
+│   │   ├── authRoutes.js
+│   │   └── portfolioRoutes.js
+│   ├── services/geminiService.js     # Gemini API integration
+│   ├── utils/resumeParser.js         # PDF and DOCX text extraction
+│   ├── validators/portfolioValidator.js
+│   ├── app.js                        # Express app setup
+│   └── server.js                     # Entry point
 │
-└── frontend/                       # React + TypeScript SPA
-    ├── public/
-    ├── src/
-    │   ├── components/
-    │   │   ├── AppLayout.tsx        # Authenticated page wrapper (header + sidebar)
-    │   │   ├── AppSidebar.tsx       # Left nav sidebar
-    │   │   └── ui/                  # shadcn/ui component library
-    │   ├── contexts/
-    │   │   └── AuthContext.tsx      # React auth context (login, logout, user state)
-    │   ├── hooks/
-    │   │   └── use-toast.ts         # Toast notification hook
-    │   ├── lib/
-    │   │   ├── api.ts               # Axios instance + auth/portfolio API helpers
-    │   │   ├── templates.ts         # All 6 HTML templates with embedded CSS
-    │   │   └── utils.ts             # Tailwind class merge utility
-    │   ├── pages/
-    │   │   ├── LoginPage.tsx        # /login
-    │   │   ├── RegisterPage.tsx     # /register
-    │   │   ├── DashboardPage.tsx    # /dashboard — portfolio gallery
-    │   │   ├── GeneratePage.tsx     # /generate — resume upload + template select
-    │   │   ├── PreviewPage.tsx      # /preview/:id — full-screen portfolio view
-    │   │   ├── EditorPage.tsx       # /editor/:id — HTML editor with live preview
-    │   │   ├── HistoryPage.tsx      # /history — all portfolios list
-    │   │   └── NotFound.tsx         # 404
-    │   ├── App.tsx                  # Router setup + protected routes
-    │   └── main.tsx                 # React entry point
-    ├── index.html
-    ├── vite.config.ts
-    ├── tailwind.config.ts
-    └── package.json
+└── frontend/
+    └── src/
+        ├── components/
+        │   ├── AppLayout.tsx          # Authenticated page wrapper
+        │   ├── AppSidebar.tsx         # Collapsible left nav
+        │   └── ui/                    # shadcn/ui components
+        ├── contexts/
+        │   ├── AuthContext.tsx
+        │   └── ThemeContext.tsx
+        ├── lib/
+        │   ├── api.ts                 # Axios instance and API helpers
+        │   ├── templates.ts           # All 10 HTML templates
+        │   └── utils.ts
+        └── pages/
+            ├── HomePage.tsx           # Landing page
+            ├── AuthPage.tsx           # Login and register
+            ├── DashboardPage.tsx      # Portfolio gallery
+            ├── GeneratePage.tsx       # Resume upload and template picker
+            ├── PreviewPage.tsx        # Full-screen portfolio view
+            ├── EditorPage.tsx         # HTML editor with live preview
+            ├── HistoryPage.tsx        # All portfolios with filters
+            └── SettingsPage.tsx       # Account, theme, data export
 ```
 
 ---
 
-## ⚙️ Installation & Setup
+## Setup
 
 ### Prerequisites
-- Node.js v18+
-- npm v9+
+
+- Node.js v18 or higher
+- npm v9 or higher
 - MongoDB Atlas account (free tier works)
 - Google Gemini API key ([get one here](https://aistudio.google.com/app/apikey))
 
 ---
 
-### 1. Clone / Extract the project
+### 1. Clone the repository
 
 ```bash
-# If using git:
-git clone <your-repo-url>
+git clone https://github.com/your-username/ai-portfolio-maker.git
 cd ai-portfolio-maker
-
-# Or extract the submitted zip and navigate into it
 ```
 
 ---
 
-### 2. Backend Setup
+### 2. Set up the backend
 
 ```bash
 cd backend
 npm install
-```
-
-Create your `.env` file:
-
-```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your actual values:
+Open `.env` and fill in your values:
 
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+JWT_SECRET=your_jwt_secret_key
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-Start the backend:
+Start the backend server:
 
 ```bash
-# Development (auto-restarts on file changes)
+# Development (auto-restarts on changes)
 npm run dev
 
 # Production
 npm start
 ```
 
-Backend runs on **http://localhost:5000**
+The server runs on `http://localhost:5000`.
 
 ---
 
-### 3. Frontend Setup
+### 3. Set up the frontend
 
 ```bash
 cd frontend
 npm install
-```
-
-Start the dev server:
-
-```bash
 npm run dev
 ```
 
-Frontend runs on **http://localhost:8080**
-
-The Vite dev server is configured to proxy `/api` requests to `http://localhost:5000` automatically, so no additional CORS configuration is needed during development.
+The frontend runs on `http://localhost:8080`. The Vite dev server automatically proxies all `/api` requests to the backend, so no additional configuration is needed.
 
 ---
 
-### 4. Using the Application
+## Usage
 
-1. Open **http://localhost:8080** in your browser
-2. Click **Sign up** and create an account (starts with 5 credits)
-3. Go to **Generate** → upload your resume PDF or paste resume text
+1. Open `http://localhost:8080` in your browser
+2. Register a new account (you start with 5 free credits)
+3. Go to **Generate**, upload your resume or paste the text
 4. Select a template and click **Generate Portfolio**
-5. The AI fills the template with your data — view in **Preview**
-6. Edit the HTML if needed in the **Editor**, then **Download** the final `.html` file
+5. The AI builds your portfolio in under a minute
+6. Preview it, edit the HTML if needed, then download the `.html` file
+7. Host on GitHub Pages or any static host for a free public URL
 
 ---
 
-## 🔌 API Endpoints
+## API Reference
 
 ### Authentication
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/auth/register` | Create new user account | ❌ |
-| POST | `/api/auth/login` | Login and receive JWT token | ❌ |
-| GET | `/api/auth/me` | Get authenticated user details | ✅ JWT |
-
-**Register request body:**
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "password": "securepassword"
-}
-```
-
-**Login response:**
-```json
-{
-  "success": true,
-  "token": "eyJhbGci...",
-  "user": { "id": "...", "name": "John Doe", "credits": 5 }
-}
-```
-
----
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/auth/register` | Create account | No |
+| POST | `/api/auth/login` | Login | No |
+| GET | `/api/auth/me` | Get current user | Yes |
+| DELETE | `/api/auth/account` | Delete account | Yes |
 
 ### Portfolio
 
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/portfolio/generate` | Generate portfolio using AI | ✅ JWT |
-| GET | `/api/portfolio/history` | List all user portfolios | ✅ JWT |
-| GET | `/api/portfolio/:id` | Get single portfolio with full HTML | ✅ JWT |
-| PUT | `/api/portfolio/:id` | Update portfolio HTML (after manual edit) | ✅ JWT |
-| DELETE | `/api/portfolio/:id` | Delete a portfolio | ✅ JWT |
-
-**Generate request** (`multipart/form-data` for file upload):
-```
-resume: <PDF or DOCX file>
-template: <full HTML string with {{placeholders}}>
-templateName: glass-terminal
-```
-
-**Generate request** (JSON for pasted text):
-```json
-{
-  "resumeText": "John Doe\nSoftware Engineer\n...",
-  "template": "<!DOCTYPE html>...",
-  "templateName": "swiss-precision"
-}
-```
-
-**Generate response:**
-```json
-{
-  "success": true,
-  "creditsRemaining": 4,
-  "portfolio": {
-    "id": "66f...",
-    "templateName": "glass-terminal",
-    "createdAt": "2025-04-01T10:00:00.000Z",
-    "finalHTML": "<!DOCTYPE html>..."
-  }
-}
-```
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/portfolio/generate` | Generate portfolio with AI | Yes |
+| GET | `/api/portfolio/history` | List all user portfolios | Yes |
+| GET | `/api/portfolio/:id` | Get portfolio HTML | Yes |
+| PUT | `/api/portfolio/:id` | Update portfolio HTML | Yes |
+| DELETE | `/api/portfolio/:id` | Delete portfolio | Yes |
 
 ---
 
-## 🔒 Security Practices
+## Security
 
-- **Passwords** are hashed with `bcryptjs` (salt rounds: 10) — never stored in plain text
-- **JWT tokens** are signed with a secret key and expire after 7 days
-- **Helmet.js** sets HTTP security headers (X-Frame-Options, CSP, HSTS, etc.)
-- **CORS** restricts API access to configured frontend origins only
-- **Rate limiting** via `express-rate-limit` prevents brute-force and API abuse
-- **Zod schema validation** on all API request bodies — rejects malformed input
-- **File upload validation** — only PDF and DOCX MIME types accepted; file size limited
-- **Portfolio ownership** enforced — users can only access/modify their own portfolios
-- **Environment variables** store all secrets — `.env` is gitignored
-
----
-
-## 🚀 Future Improvements
-
-1. **Publish as live URL** — Host the generated portfolio on a subdomain (e.g., `username.aiportfolio.com`) instead of download-only
-2. **Custom domain support** — Allow users to point their own domain to a hosted portfolio
-3. **More templates** — Add mobile-focused, creative, and academic portfolio styles
-4. **Resume parsing improvements** — Use OCR for scanned PDF resumes
-5. **Real-time editing with AI assist** — Inline AI suggestions while editing HTML
-6. **Email-based password reset** — Forgot password flow using Nodemailer
-7. **OAuth login** — Sign in with Google / GitHub
-8. **Portfolio analytics** — Track views if portfolio is hosted publicly
-9. **PDF export** — Export portfolio as a PDF in addition to HTML
-10. **Subscription / payment integration** — Razor Pay or Stripe for credit top-up
+- Passwords hashed with bcryptjs (10 salt rounds)
+- JWT tokens expire after 7 days
+- Helmet.js sets HTTP security headers
+- CORS restricts access to configured origins
+- Rate limiting on all API routes
+- Zod schema validation on all request bodies
+- File upload restricted to PDF and DOCX only
+- Portfolio ownership enforced on all routes
+- Secrets stored in environment variables, never in code
 
 ---
 
-## 👨‍💻 Author
+## Deployment
+
+The backend can be deployed to any Node.js host (Render, Railway, Fly.io, etc.). The frontend builds to a static bundle with `npm run build` and can be deployed to Vercel, Netlify, or served by the backend itself.
+
+For the free Gemini API tier, the daily quota resets at midnight Pacific Time (around 12:30 PM IST). You can add a second key as `GEMINI_API_KEY_2` in your `.env` to extend availability.
+
+---
+
+## Author
 
 **Mukkamula Manoj**
-B.Tech — Computer Science & Engineering
-JNTUH Affiliated College
+B.Tech, Computer Science and Engineering
+JNTUH Affiliated College, Hyderabad, 2026
 
 ---
 
-## 📄 License
+## License
 
-This project was developed as an academic submission for B.Tech Major Project requirements.
-For educational and demonstration purposes only.
+This project was built as an academic submission for B.Tech Major Project requirements.
+Free to use for educational and demonstration purposes.
