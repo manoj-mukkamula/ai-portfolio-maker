@@ -129,10 +129,17 @@ const EditorPage = () => {
   const [editorPct, setEditorPct]   = useState(50);
   const isDragging                  = useRef(false);
   const containerRef                = useRef<HTMLDivElement>(null);
+  const iframeRef                   = useRef<HTMLIFrameElement>(null);
   const dragStartX                  = useRef(0);
   const dragStartPct                = useRef(50);
 
   const et = EDITOR_THEMES[theme as "dark" | "light"] ?? EDITOR_THEMES.dark;
+
+  // Sync app theme → portfolio iframe whenever theme changes
+  // Works for aurora-studio, vanta-pro and any future theme-aware template
+  useEffect(() => {
+    iframeRef.current?.contentWindow?.postMessage({ type: "set-theme", theme }, "*");
+  }, [theme]);
 
   useEffect(() => {
     if (!id) return;
@@ -463,10 +470,15 @@ const EditorPage = () => {
 
           {/* iFrame preview */}
           <iframe
+            ref={iframeRef}
             srcDoc={previewHtml}
             title="Live Preview"
             className="flex-1 border-0 w-full"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            onLoad={() => {
+              // Send current theme to newly loaded iframe content
+              iframeRef.current?.contentWindow?.postMessage({ type: "set-theme", theme }, "*");
+            }}
           />
         </div>
       </div>

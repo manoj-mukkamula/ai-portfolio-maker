@@ -1,6 +1,6 @@
 // src/pages/GeneratePage.tsx
-// Flow: click Generate → immediately navigate to /preview/pending?loading=1
-//       API call fires in background, promise stored in generateStore
+// Flow: click Generate → start API call → show 10-second preloader overlay
+//       After 10s preloader completes → navigate to /preview/pending
 //       PreviewPage picks up the promise and shows skeleton until it resolves
 
 import { useState, useRef, useCallback } from "react";
@@ -10,6 +10,7 @@ import AppLayout from "@/components/AppLayout";
 import { portfolioApi } from "@/lib/api";
 import { generateStore } from "@/lib/generateStore";
 import { TEMPLATES } from "@/lib/templates";
+import GeneratePreloader from "@/components/GeneratePreloader";
 import {
   Upload, FileText, Sparkles, Info,
   CheckCircle, Cpu, ChevronDown, X, AlertTriangle, Clock,
@@ -39,6 +40,7 @@ const GeneratePage = () => {
   const [dragOver, setDragOver]                 = useState(false);
   const [tipOpen, setTipOpen]                   = useState(true);
   const [apiError, setApiError]                 = useState<{ kind: ErrorKind; msg: string } | null>(null);
+  const [showPreloader, setShowPreloader]       = useState(false);
 
   const isSubmittingRef = useRef(false);
   const fileInputRef    = useRef<HTMLInputElement>(null);
@@ -108,8 +110,9 @@ const GeneratePage = () => {
 
     generateStore.set(resultPromise);
 
-    // Navigate immediately — PreviewPage takes over from here
-    navigate("/preview/pending?loading=1");
+    // Show the 10-second preloader — it calls onComplete() after 10s
+    // which then navigates to PreviewPage. API call is already running in background.
+    setShowPreloader(true);
   };
 
   const hasInput    = tab === "upload" ? !!file : resumeText.trim().length > 0;
@@ -150,6 +153,15 @@ Projects:
 
   return (
     <AppLayout>
+      {/* ── 10-second preloader overlay ───────────────────────────────────── */}
+      {showPreloader && (
+        <GeneratePreloader
+          onComplete={() => {
+            setShowPreloader(false);
+            navigate("/preview/pending?loading=1");
+          }}
+        />
+      )}
       <div className="max-w-5xl mx-auto animate-fade-in">
 
         {/* ── Page Header ─────────────────────────────────────────────────── */}

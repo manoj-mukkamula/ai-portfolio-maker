@@ -267,7 +267,8 @@ const PreviewPage = () => {
   const [showPdfModal, setShowPdfModal]       = useState(false);
   const [fatalError, setFatalError]           = useState("");
 
-  const didFetch = useRef(false);
+  const didFetch  = useRef(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     if (didFetch.current) return;
@@ -424,7 +425,12 @@ const PreviewPage = () => {
           )}
         </div>
         <div className="flex items-center gap-1">
-          <button onClick={toggleTheme} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          <button onClick={() => {
+              toggleTheme();
+              // Send theme message to iframe portfolio (for aurora-studio / vanta-pro and any theme-aware template)
+              const next = theme === "dark" ? "light" : "dark";
+              iframeRef.current?.contentWindow?.postMessage({ type: "set-theme", theme: next }, "*");
+            }} title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             className="p-2 rounded-lg hover:bg-secondary transition-colors">
             {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-muted-foreground" />}
           </button>
@@ -476,14 +482,15 @@ const PreviewPage = () => {
         >
           {safeHtml && (
             <iframe
+              ref={iframeRef}
               srcDoc={safeHtml}
               title="Portfolio Preview"
               className="w-full border-0"
               style={{ height: "calc(100vh - 56px)" }}
-              // allow-popups: required for window.open() inside iframe (link intercept)
-              // allow-scripts: required for LINK_INTERCEPT_SCRIPT to run
-              // NO allow-top-navigation: prevents iframe from redirecting parent
               sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+              onLoad={() => {
+                iframeRef.current?.contentWindow?.postMessage({ type: "set-theme", theme }, "*");
+              }}
             />
           )}
         </div>

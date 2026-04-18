@@ -319,6 +319,106 @@ function SkeletonKineticMagazine() {
   );
 }
 
+function SkeletonAuroraStudio() {
+  return (
+    <div className="min-h-screen p-0 overflow-hidden" style={{ background: "#f7f6f2" }}>
+      <div
+        className="max-w-5xl mx-auto px-8 py-12"
+        style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "4rem" }}
+      >
+        {/* Left rail */}
+        <div className="space-y-5">
+          <Sh w="100px" h="10px" delay={0} />
+          <Sh w="75%" h="52px" delay={60} radius="4px" />
+          <Sh w="55%" h="14px" delay={100} />
+          <div className="space-y-2 mt-4">
+            <Sh w="100%" h="10px" delay={140} />
+            <Sh w="90%" h="10px" delay={180} />
+            <Sh w="80%" h="10px" delay={220} />
+          </div>
+          <div className="space-y-2 mt-6 pt-4" style={{ borderTop: "1px solid rgba(20,20,22,0.08)" }}>
+            {[["Location","70%"],["Email","85%"],["Phone","60%"]].map(([,w],i) => (
+              <div key={i} className="flex justify-between">
+                <Sh w="60px" h="9px" delay={i*50} />
+                <Sh w={w} h="9px" delay={i*50+30} />
+              </div>
+            ))}
+          </div>
+          <Sh w="140px" h="40px" delay={200} radius="10px" />
+        </div>
+        {/* Right content */}
+        <div className="space-y-10">
+          <div className="space-y-3">
+            <div className="flex justify-between"><Sh w="120px" h="16px" /><Sh w="30px" h="11px" /></div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {[80,72,96,60,84,68,76,88,64].map((w,i) => <Sh key={i} w={`${w}px`} h="30px" delay={i*30} radius="8px" />)}
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div className="flex justify-between"><Sh w="140px" h="16px" /><Sh w="30px" h="11px" /></div>
+            <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              {[0,1,2,3].map(i => (
+                <div key={i} className="p-5 rounded-xl space-y-2" style={{ background: "#fff", border: "1px solid rgba(20,20,22,0.08)" }}>
+                  <Sh w="65%" h="14px" delay={i*60} />
+                  <Sh w="100%" h="10px" delay={i*60+40} />
+                  <Sh w="80%" h="10px" delay={i*60+80} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonVantaPro() {
+  return (
+    <div className="min-h-screen overflow-hidden" style={{ background: "#08080a" }}>
+      {/* Nav */}
+      <div className="h-14 border-b flex items-center px-10 justify-between" style={{ borderColor: "rgba(255,255,255,0.06)" }}>
+        <div className="flex items-center gap-3">
+          <Sh w="22px" h="22px" radius="7px" />
+          <Sh w="100px" h="11px" />
+        </div>
+        <div className="flex gap-6">
+          {[72,60,80,56,68].map((w,i) => <Sh key={i} w={`${w}px`} h="10px" delay={i*50} />)}
+        </div>
+        <Sh w="80px" h="34px" delay={200} radius="8px" />
+      </div>
+      {/* Hero */}
+      <div className="px-12 pt-20 pb-10">
+        <Sh w="180px" h="10px" delay={80} radius="2px" />
+        <div className="mt-6 space-y-3">
+          <Sh w="72%" h="72px" delay={120} radius="6px" />
+          <Sh w="52%" h="72px" delay={160} radius="6px" />
+        </div>
+        <div className="mt-6 space-y-2">
+          <Sh w="480px" h="13px" delay={200} />
+          <Sh w="360px" h="13px" delay={240} />
+        </div>
+        <div className="mt-8 flex gap-4">
+          <Sh w="160px" h="46px" delay={280} radius="10px" />
+          <Sh w="120px" h="46px" delay={320} radius="10px" />
+        </div>
+        {/* Metrics */}
+        <div className="mt-14 grid grid-cols-4 gap-4">
+          {[0,1,2,3].map(i => (
+            <div key={i} className="p-5 rounded-xl space-y-2" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)" }}>
+              <Sh w="50px" h="30px" delay={i*60} radius="4px" />
+              <Sh w="80%" h="10px" delay={i*60+40} />
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Skills marquee bar */}
+      <div className="h-12 flex items-center gap-4 px-12 overflow-hidden" style={{ background: "rgba(255,255,255,0.025)" }}>
+        {[88,72,96,64,80,76,68,92,60].map((w,i) => <Sh key={i} w={`${w}px`} h="28px" delay={i*40} radius="14px" />)}
+      </div>
+    </div>
+  );
+}
+
 const SKELETON_MAP: Record<string, React.FC> = {
   "glass-terminal":   SkeletonGlassTerminal,
   "brutalist-grid":   SkeletonBrutalistGrid,
@@ -326,6 +426,8 @@ const SKELETON_MAP: Record<string, React.FC> = {
   "swiss-precision":  SkeletonSwissPrecision,
   "obsidian-code":    SkeletonObsidianCode,
   "kinetic-magazine": SkeletonKineticMagazine,
+  "aurora-studio":    SkeletonAuroraStudio,
+  "vanta-pro":        SkeletonVantaPro,
 };
 
 // ─── GeneratingPage ──────────────────────────────────────────────────────────

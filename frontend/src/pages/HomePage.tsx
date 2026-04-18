@@ -2,6 +2,7 @@
 
 import { Link } from "react-router-dom";
 import SharedNavbar from "@/components/SharedNavbar";
+import { TEMPLATES } from "@/lib/templates";
 import {
   Sparkles, Upload, Cpu, Download, Palette,
   Zap, Shield, ArrowRight, Check, FileText, Eye,
@@ -61,8 +62,8 @@ const HOW_IT_WORKS = [
     icon: Palette,
     color: "#8b5cf6",
     title: "Choose a template",
-    desc: "Browse 8 professionally designed styles, each with a live preview so you know exactly what you are getting.",
-    detail: "8 templates · Live preview",
+    desc: `Browse ${TEMPLATES.length} professionally designed styles, each with a live preview so you know exactly what you are getting.`,
+    detail: `${TEMPLATES.length} templates · Live preview`,
   },
   {
     step: 3,
